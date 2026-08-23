@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<style>
+  :root {
+    --azul: #003366;
+    --gris: #5a6270;
+    --borde: #d6dae0;
+    --fondo: #f5f7f9;
+    --ambar: #8a6100;
+    --ambar-bg: #fdf6e3;
+    --rojo: #9b2226;
+    --rojo-bg: #fdf0f0;
+    --verde: #1b5e3f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Roboto, Arial, sans-serif;
+    background: var(--fondo);
+    color: #1f2430;
+    margin: 0;
+    padding: 32px 16px;
+    line-height: 1.5;
+  }
+  .caja {
+    max-width: 620px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    padding: 32px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; color: var(--azul); }
+  .bajada { color: var(--gris); font-size: 14px; margin: 0 0 24px; }
+
+  .zona {
+    border: 2px dashed var(--borde);
+    border-radius: 8px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .zona:hover, .zona.encima { border-color: var(--azul); background: #f0f5fb; }
+  .zona strong { color: var(--azul); }
+  .zona small { color: var(--gris); display: block; margin-top: 6px; }
+  #archivo { display: none; }
+
+  .elegido {
+    display: none;
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: var(--fondo);
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    font-size: 14px;
+    word-break: break-all;
+  }
+
+  button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: inherit;
+    color: #fff;
+    background: var(--azul);
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:disabled { background: #a8b2bf; cursor: default; }
+
+  .estado { display: none; margin-top: 20px; font-size: 14px; color: var(--gris); text-align: center; }
+
+  .resultado, .error { display: none; margin-top: 24px; }
+  .resultado { padding: 20px; background: #f2f8f4; border: 1px solid #cfe3d7; border-radius: 8px; }
+  .resultado h2 { font-size: 16px; margin: 0 0 10px; color: var(--verde); }
+  .resultado dl { margin: 0 0 16px; font-size: 14px; }
+  .resultado dt { color: var(--gris); float: left; clear: left; width: 110px; }
+  .resultado dd { margin: 0 0 4px 118px; }
+  .resultado a {
+    display: block; text-align: center; padding: 12px;
+    background: var(--verde); color: #fff; text-decoration: none;
+    border-radius: 6px; font-weight: 500;
+  }
+
+  .avisos {
+    margin: 0 0 16px; padding: 12px 14px;
+    background: var(--ambar-bg); border-left: 3px solid var(--ambar);
+    border-radius: 4px; font-size: 13px; color: var(--ambar);
+  }
+  .avisos p { margin: 0 0 6px; font-weight: 500; }
+  .avisos ul { margin: 0; padding-left: 18px; }
+
+  .error {
+    padding: 14px; background: var(--rojo-bg);
+    border-left: 3px solid var(--rojo); border-radius: 4px;
+    font-size: 14px; color: var(--rojo);
+  }
+
+  .pie { margin-top: 24px; font-size: 12px; color: var(--gris); text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="caja">
+  <h1>Constancia de Alumno Regular</h1>
+  <p class="bajada">Para trámites de Work and Travel &middot; Facultad de Ingeniería, UCC</p>
+
+  <div class="zona" id="zona">
+    <strong>Subí tu Ficha del Alumno</strong>
+    <small>Arrastrala acá o hacé click para elegirla &middot; PDF</small>
+    <input type="file" id="archivo" accept="application/pdf,.pdf">
+  </div>
+
+  <div class="elegido" id="elegido"></div>
+
+  <button id="generar" disabled>Generar constancia</button>
+
+  <div class="estado" id="estado">Procesando la ficha&hellip; puede tardar unos segundos.</div>
+
+  <div class="resultado" id="resultado">
+    <h2>Constancia generada</h2>
+    <div class="avisos" id="avisos" style="display:none">
+      <p>Revisar antes de presentar:</p>
+      <ul id="listaAvisos"></ul>
+    </div>
+    <dl>
+      <dt>Alumno/a</dt><dd id="rAlumno"></dd>
+      <dt>Carrera</dt><dd id="rCarrera"></dd>
+      <dt>Año que cursa</dt><dd id="rAnio"></dd>
+    </dl>
+    <a id="rLink" href="#" target="_blank" rel="noopener">Abrir el PDF</a>
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <p class="pie">La ficha que subís se usa solo para generar la constancia y se elimina enseguida.</p>
+</div>
+
+<script>
+  const zona = document.getElementById('archivo');
+  const caja = document.getElementById('zona');
+  const elegido = document.getElementById('elegido');
+  const boton = document.getElementById('generar');
+  const estado = document.getElementById('estado');
+  const resultado = document.getElementById('resultado');
+  const error = document.getElementById('error');
+
+  let archivo = null;
+
+  caja.addEventListener('click', () => zona.click());
+  zona.addEventListener('change', e => tomar(e.target.files[0]));
+
+  ['dragenter', 'dragover'].forEach(ev =>
+    caja.addEventListener(ev, e => { e.preventDefault(); caja.classList.add('encima'); }));
+  ['dragleave', 'drop'].forEach(ev =>
+    caja.addEventListener(ev, e => { e.preventDefault(); caja.classList.remove('encima'); }));
+  caja.addEventListener('drop', e => tomar(e.dataTransfer.files[0]));
+
+  function tomar(f) {
+    if (!f) return;
+    if (!/\.pdf$/i.test(f.name)) {
+      mostrarError('El archivo tiene que ser un PDF.');
+      return;
+    }
+    archivo = f;
+    elegido.textContent = f.name;
+    elegido.style.display = 'block';
+    boton.disabled = false;
+    ocultar();
+  }
+
+  boton.addEventListener('click', () => {
+    if (!archivo) return;
+    ocultar();
+    boton.disabled = true;
+    estado.style.display = 'block';
+
+    const lector = new FileReader();
+    lector.onload = () => {
+      const base64 = lector.result.split(',')[1];
+      google.script.run
+        .withSuccessHandler(responder)
+        .withFailureHandler(e => mostrarError(e.message || String(e)))
+        .subirYGenerar(archivo.name, base64);
+    };
+    lector.onerror = () => mostrarError('No se pudo leer el archivo.');
+    lector.readAsDataURL(archivo);
+  });
+
+  function responder(r) {
+    estado.style.display = 'none';
+    boton.disabled = false;
+
+    if (!r || !r.ok) {
+      mostrarError((r && r.error) || 'Error desconocido.');
+      return;
+    }
+
+    document.getElementById('rAlumno').textContent = r.alumno;
+    document.getElementById('rCarrera').textContent = r.carrera;
+    document.getElementById('rAnio').textContent = r.anioCursa;
+    document.getElementById('rLink').href = r.url;
+
+    const cajaAvisos = document.getElementById('avisos');
+    const lista = document.getElementById('listaAvisos');
+    lista.innerHTML = '';
+    if (r.avisos && r.avisos.length) {
+      r.avisos.forEach(a => {
+        const li = document.createElement('li');
+        li.textContent = a;
+        lista.appendChild(li);
+      });
+      cajaAvisos.style.display = 'block';
+    } else {
+      cajaAvisos.style.display = 'none';
+    }
+
+    resultado.style.display = 'block';
+  }
+
+  function mostrarError(msg) {
+    estado.style.display = 'none';
+    resultado.style.display = 'none';
+    boton.disabled = !archivo;
+    error.textContent = msg;
+    error.style.display = 'block';
+  }
+
+  function ocultar() {
+    error.style.display = 'none';
+    resultado.style.display = 'none';
+  }
+</script>
+
+</body>
+</html>
