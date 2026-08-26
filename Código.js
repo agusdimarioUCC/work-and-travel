@@ -16,7 +16,7 @@
 const CONFIG = {
   ID_PLANILLA: '1W0EyQSpzkPm9oFQaB7bM7mY9PBFeElqTN5kFbXlMNrc',   // hojas "Planes" y "Calendario"
   ID_PLANTILLA: '1bHVdGrIONdfZ_FMpG4jCDdOqWYZVr6eT7TOg06vW9E8',
-  ID_CARPETA_SALIDA: '1yLaQuStXytSJFLt4JKD6vyW19Yc_2GZi',
+  ID_CARPETA_SALIDA: '1xpY367mDJiUwtecAr_nJtmRTJILrDOub',
   INSTITUCION: 'Universidad Católica de Córdoba - Facultad de Ingeniería',
   MODALIDAD: 'Presencial',
   ZONA_HORARIA: 'America/Argentina/Cordoba'
@@ -47,8 +47,8 @@ function extraerFicha(texto) {
 
   return {
     idAlumno: idAlumno,
-    nombreFicha: alumno[2].trim(),            // "DI MARIO, AGUSTÍN"
-    nombre: formatearNombre(alumno[2]),       // "Agustín Di Mario"
+    nombreFicha: alumno[2].trim(),            // "PÉREZ, JUAN MARTÍN"
+    nombre: formatearNombre(alumno[2]),       // "Juan Martín Pérez"
     legajo: alumno[3],
     tipoDoc: doc[1],
     nroDoc: doc[2],
@@ -60,7 +60,7 @@ function extraerFicha(texto) {
   };
 }
 
-/** "DI MARIO, AGUSTÍN" -> "Agustín Di Mario" */
+/** "PÉREZ, JUAN MARTÍN" -> "Juan Martín Pérez" */
 function formatearNombre(apellidoNombre) {
   const partes = apellidoNombre.split(',');
   const apellido = partes[0] || '';
@@ -92,7 +92,7 @@ function anioIngresoPorTabla(texto, anioActual) {
   return anios.length ? Math.min.apply(null, anios) : null;
 }
 
-/** Los dos primeros dígitos del ID de alumno son la cohorte: 2400520 -> 2024 */
+/** Los dos primeros dígitos del ID de alumno son la cohorte: 2400000 -> 2024 */
 function anioIngresoPorId(idAlumno) {
   const n = parseInt(String(idAlumno).substring(0, 2), 10);
   return isNaN(n) ? null : 2000 + n;
@@ -315,13 +315,23 @@ function fichaANota(idArchivoPdf) {
 // PRUEBAS
 // ============================================================
 
-const ID_FICHA_PRUEBA = '1hjFHyLCJP5Mavu8-CoLVpzEZO6XTSO-v';
+/**
+ * ID de un PDF de ficha para las pruebas que tocan Drive (probarExtraccion y
+ * probarCompleto). Va vacío a propósito: una ficha real trae DNI y domicilio,
+ * y no corresponde dejar la de nadie fija en el código.
+ *
+ * Para usar esas dos pruebas: subir una ficha a Drive, pegar acá su ID, correr
+ * la prueba y volver a vaciar la constante. probarLogica() y probarAccesos()
+ * no la necesitan.
+ */
+const ID_FICHA_PRUEBA = '';
 
 /** 1) Lógica pura. No toca Drive ni Sheets, corre al instante. */
 function probarLogica() {
+  // Datos inventados: esta prueba no usa la ficha de ningún alumno real.
   const muestra =
     'FICHA DEL ALUMNO (NO Válido como Documento)\n' +
-    'ALUMNO: 2400520 DI MARIO, AGUSTÍN LEG: 85601 DOC: DNI 41681892 ' +
+    'ALUMNO: 2400000 PÉREZ, JUAN MARTÍN LEG: 99999 DOC: DNI 40000000 ' +
     'CARRERA: 17 INGENIERÍA EN INFORMÁTICA (PLAN: 2023)\n' +
     'Emitido: 21-08-2026\n' +
     '2024 2025 2026 2024 2025\n' +
@@ -329,9 +339,9 @@ function probarLogica() {
 
   const ficha = extraerFicha(muestra);
 
-  const ok = ficha.nombre === 'Agustín Di Mario'
-    && ficha.nroDoc === '41681892'
-    && ficha.legajo === '85601'
+  const ok = ficha.nombre === 'Juan Martín Pérez'
+    && ficha.nroDoc === '40000000'
+    && ficha.legajo === '99999'
     && ficha.clave === '17-2023'
     && ficha.ingreso.valor === 2024
     && ficha.ingreso.confiable === true
@@ -342,17 +352,94 @@ function probarLogica() {
   Logger.log(ok ? 'OK' : 'FALLA:\n' + JSON.stringify(ficha, null, 2));
 }
 
+/** Corta con un mensaje claro si no se cargó una ficha para probar. */
+function idFichaDePrueba() {
+  if (!ID_FICHA_PRUEBA) {
+    throw new Error(
+      'Falta el ID de la ficha de prueba. Subí un PDF de ficha a Drive, pegá ' +
+      'su ID en ID_FICHA_PRUEBA (sección PRUEBAS) y volvé a correr. Acordate ' +
+      'de vaciarlo después: la ficha trae datos personales del alumno.'
+    );
+  }
+  return ID_FICHA_PRUEBA;
+}
+
 /** 2) Extracción sobre una ficha real, sin generar nada. */
 function probarExtraccion() {
-  const ficha = extraerFicha(pdfATexto(ID_FICHA_PRUEBA));
+  const ficha = extraerFicha(pdfATexto(idFichaDePrueba()));
   Logger.log(JSON.stringify(ficha, null, 2));
   Logger.log('ingreso -> por tabla: %s | por ID: %s | coinciden: %s',
     ficha.ingreso.porTabla, ficha.ingreso.porId, ficha.ingreso.confiable);
 }
 
+/**
+ * 0) Diagnóstico de accesos. Corré esta primero cuando algo falla con
+ * "Acceso denegado" o "no se encontró el archivo".
+ *
+ * Toca los tres recursos de CONFIG por separado para saber cuál falla, en vez
+ * de que el primer error tape a los otros dos. No lee ninguna ficha, así que
+ * se puede correr sin datos de ningún alumno.
+ *
+ * Correrla desde el editor también es la forma de disparar la pantalla de
+ * permisos de Google: hasta que no se acepte, la web app tira
+ * "Acceso denegado: DriveApp" aunque el sharing esté bien.
+ */
+function probarAccesos() {
+  chequearAccesos().forEach(linea => Logger.log(linea));
+}
+
+/**
+ * Chequea los recursos de CONFIG uno por uno y devuelve una línea por cada
+ * uno, en vez de cortar en el primer error.
+ *
+ * Se usa desde el editor (probarAccesos) y desde WebApp.js cuando algo falla.
+ * Correrlo en los dos lados permite comparar contextos de ejecución: el
+ * editor corre con tu sesión, la web app con el token del deployment, y no
+ * siempre tienen los mismos permisos.
+ */
+function chequearAccesos() {
+  const chequeos = [
+    ['carpeta de salida', () => DriveApp.getFolderById(CONFIG.ID_CARPETA_SALIDA).getName()],
+    ['plantilla',         () => DriveApp.getFileById(CONFIG.ID_PLANTILLA).getName()],
+    ['planilla',          () => SpreadsheetApp.openById(CONFIG.ID_PLANILLA).getName()],
+    ['Drive avanzado',    () => Drive.getVersion()],
+    // Quién es dueño de la carpeta y con qué rol entra la cuenta que ejecuta.
+    // Es lo que explica el FALLA de abajo: sin esto hay que ir a adivinar a
+    // Drive, y el mensaje "Access denied: DriveApp" no nombra ni la carpeta.
+    ['acceso a la carpeta', () => {
+      const carpeta = DriveApp.getFolderById(CONFIG.ID_CARPETA_SALIDA);
+      let duenio = '(no visible)';
+      try {
+        const o = carpeta.getOwner();
+        if (o) duenio = o.getEmail();
+      } catch (ignorar) {}
+      return 'entro como ' + carpeta.getAccess(Session.getEffectiveUser()) +
+        ', dueño ' + duenio;
+    }],
+    // El chequeo que importa: la app CREA archivos en la carpeta de salida.
+    // Con permiso de Lector los de arriba dan OK igual y este falla.
+    ['escritura en carpeta', () => {
+      const tmp = DriveApp.getFolderById(CONFIG.ID_CARPETA_SALIDA)
+        .createFile('tmp-chequeo-permisos.txt', '');
+      tmp.setTrashed(true);
+      return 'se pudo crear y borrar';
+    }],
+    // Vacío en cuentas personales; solo devuelve el mail dentro de un Workspace.
+    ['usuario efectivo',  () => Session.getEffectiveUser().getEmail() || '(vacío)']
+  ];
+
+  return chequeos.map(par => {
+    try {
+      return 'OK ' + par[0] + ' -> ' + par[1]();
+    } catch (e) {
+      return 'FALLA ' + par[0] + ' -> ' + (e.message || e);
+    }
+  });
+}
+
 /** 3) De punta a punta: genera el PDF. */
 function probarCompleto() {
-  const r = fichaANota(ID_FICHA_PRUEBA);
+  const r = fichaANota(idFichaDePrueba());
 
   Logger.log('--- DATOS ---');
   Logger.log(JSON.stringify(r.datos, null, 2));
@@ -365,4 +452,63 @@ function probarCompleto() {
   }
 
   Logger.log('PDF: %s', r.pdf.url);
+}
+
+/**
+ * Texto de una ficha inventada, con el mismo formato que produce Oracle Reports.
+ * No son los datos de ningún alumno real.
+ */
+const FICHA_SINTETICA = [
+  'FICHA DEL ALUMNO (NO Valido como Documento)',
+  'ALUMNO: 2400000 PEREZ, JUAN MARTIN LEG: 99999 DOC: DNI 40000000 ' +
+    'CARRERA: 17 INGENIERIA EN INFORMATICA (PLAN: 2023)',
+  'HISTORIA DE ESTA ACTIVIDAD ACADEMICA',
+  '2024 2025 2026 2024 2025',
+  '2024 23-11-2023 CURSA'
+].join('\n');
+
+/**
+ * 4) Punta a punta sin datos de nadie y sin tocar la carpeta de salida.
+ *
+ * Fabrica la ficha (un Doc con el texto, exportado a PDF), la procesa y genera
+ * la nota dentro de una carpeta temporal propia, que borra al terminar.
+ *
+ * Redirige CONFIG.ID_CARPETA_SALIDA solo durante esta ejecución: no cambia nada
+ * en el proyecto ni en la web app deployada. Sirve para verificar el flujo
+ * completo cuando la carpeta de salida todavía no tiene permiso de escritura,
+ * que es lo único que probarAccesos() no puede sortear.
+ */
+function probarPuntaAPunta() {
+  const original = CONFIG.ID_CARPETA_SALIDA;
+  const carpeta = DriveApp.createFolder('tmp-prueba-wat-' + Date.now());
+  let idDocFicha = null;
+
+  try {
+    CONFIG.ID_CARPETA_SALIDA = carpeta.getId();
+
+    const doc = DocumentApp.create('tmp-ficha-sintetica');
+    idDocFicha = doc.getId();
+    doc.getBody().setText(FICHA_SINTETICA);
+    doc.saveAndClose();
+
+    const pdfFicha = carpeta.createFile(
+      DriveApp.getFileById(idDocFicha).getAs('application/pdf')
+    ).setName('ficha-sintetica.pdf');
+
+    const r = fichaANota(pdfFicha.getId());
+
+    Logger.log('--- DATOS ---');
+    Logger.log(JSON.stringify(r.datos, null, 2));
+    Logger.log(r.avisos.length
+      ? '--- AVISOS ---\n' + r.avisos.join('\n')
+      : '--- SIN AVISOS ---');
+    Logger.log('OK punta a punta -> se generó "%s"', r.pdf.nombre);
+
+  } finally {
+    CONFIG.ID_CARPETA_SALIDA = original;
+    if (idDocFicha) {
+      try { DriveApp.getFileById(idDocFicha).setTrashed(true); } catch (ignorar) {}
+    }
+    carpeta.setTrashed(true);          // se lleva lo de adentro
+  }
 }

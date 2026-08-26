@@ -75,11 +75,26 @@ función de esa sección.
 No están en Git ni los maneja clasp. Sus IDs viven en `CONFIG` al tope de
 `Código.js`:
 
-| Recurso | Qué es |
-|---|---|
-| `ID_PLANILLA` | Google Sheets con las hojas `Planes` y `Calendario` |
-| `ID_PLANTILLA` | Google Doc con el texto de la nota y los placeholders |
-| `ID_CARPETA_SALIDA` | Carpeta de Drive donde se dejan los PDF generados |
+| Recurso | Qué es | Permiso que necesita la cuenta que ejecuta |
+|---|---|---|
+| `ID_PLANILLA` | Google Sheets con las hojas `Planes` y `Calendario` | Lector |
+| `ID_PLANTILLA` | Google Doc con el texto de la nota y los placeholders | Lector |
+| `ID_CARPETA_SALIDA` | Carpeta de Drive donde se dejan los PDF generados | **Editor** |
+
+`ID_CARPETA_SALIDA` **no es del Drive de Aaron ni de la cuenta que ejecuta: su
+dueño es `grado.fi@ucc.edu.ar`**, una cuenta de área de la Secretaría
+(verificado el 2026-08-25 con `probarAccesos()`). Tiene que estar compartida
+como **Editor** con la cuenta que ejecuta: la app crea archivos ahí. Sin eso,
+todo lo demás anda y falla recién al generar. Ver "`Access denied: DriveApp` no
+significa lo que parece".
+
+Al 2026-08-25, `2400520@ucc.edu.ar` entra a esa carpeta como **`NONE`**: no
+tiene permiso propio, la ve por herencia del dominio o por enlace. Por eso lee
+y no escribe.
+
+**Que la carpeta ya sea de una cuenta institucional es la salida limpia:** si la
+app se ejecuta *como* esa cuenta, no hay permisos cruzados que mantener. Ver
+`TRASPASO.md`.
 
 ### Hoja `Planes`
 
@@ -192,13 +207,32 @@ apellidos compuestos (el regex de nombre parte por la primera coma).
 **No hay build ni bundler.** Cada archivo del repo es literalmente lo que
 corre en Apps Script.
 
+**Ojo con la versión de clasp.** Estamos en **v3**, que le cambió el nombre a
+varios comandos. Mucho tutorial de internet (y las respuestas de un LLM que
+no mire esto) están en v2 y fallan con `Unknown command`.
+
 ```bash
-clasp push          # sube el estado local al proyecto (pisa lo remoto)
-clasp status        # qué archivos van a subir. Correr si hay dudas.
-clasp open          # abre el editor web (para correr funciones de prueba)
-clasp deploy        # crea una NUEVA versión del deployment
-clasp deployments   # lista deployments con sus IDs
+clasp push -f              # sube el estado local (pisa lo remoto). El -f evita
+                           # el prompt: sin él, si cambió appsscript.json, no sube
+clasp status               # qué archivos van a subir. Correr si hay dudas
+clasp open-script          # abre el editor web (era "clasp open" en v2)
+clasp open-web-app         # abre la web app deployada
+clasp deployments          # lista deployments con sus IDs
+clasp deploy -i ID         # actualiza ESE deployment, conservando su URL
+clasp show-authorized-user # con qué cuenta está logueado clasp
+clasp logout / clasp login # cambiar de cuenta
 ```
+
+**Usá siempre `clasp deploy -i ID`.** `clasp deploy` a secas crea un deployment
+nuevo con otra URL, y la que ya está repartida queda sirviendo la versión
+vieja para siempre. Sacá el ID con `clasp deployments` (es el que tiene
+descripción; el `@HEAD` es otra cosa y no se toca).
+
+**Si cambiaste `appsscript.json`, `clasp push` pide confirmación.** En una
+terminal no interactiva eso sale como `Skipping push` — no es un error, no
+devuelve código distinto de cero, y el `clasp deploy` que venga después
+deploya el código viejo tan tranquilo. Usá `clasp push -f` y verificá que
+diga `Pushed N files`.
 
 **`clasp push` NO actualiza la URL pública.** La web app sigue sirviendo la
 versión vieja hasta que se haga `clasp deploy`. Es el error más común del
@@ -221,8 +255,73 @@ Carpeta — recursos institucionales a los que no tiene ni debe tener acceso.
 Con `USER_DEPLOYING` corre siempre con los permisos de quien hizo el último
 deploy, que es lo que se busca acá.
 
-`access` es `DOMAIN` para restringirlo al dominio de la UCC. Durante el
-desarrollo en la cuenta personal de Agus puede estar en `MYSELF`.
+`access` **tiene que ser `DOMAIN`**: cualquier alumno con cuenta `@ucc.edu.ar`
+abre la URL, y nadie de afuera. Es el requisito del proyecto.
+
+**No lo pongas en `ANYONE` ("Cualquiera").** No significa "cualquier alumno":
+significa cualquiera en internet, incluso sin cuenta de Google. La ficha trae
+DNI y domicilio; el formulario no puede quedar abierto.
+
+**El deployment puede quedar desincronizado del manifest.** Ya pasó: el repo
+decía `MYSELF` y la implementación estaba en `Cualquiera`. Después de un
+`clasp deploy`, verificá en *Implementar → Administrar implementaciones →
+(lápiz)* que "Usuarios con acceso" diga `Cualquier persona de ucc.edu.ar`.
+Lo que vale es lo que dice la UI.
+
+**Quién es "quien hizo el último deploy"**: la cuenta con la que está
+autenticado `clasp` en la máquina, no la que tengas abierta en el navegador.
+Se consulta con **`clasp show-authorized-user`**. Hoy es `2400520@ucc.edu.ar`.
+Cualquier error de permisos se chequea contra **esa** cuenta.
+
+### `oauthScopes`: no están, y es a propósito
+
+El manifest **no declara `oauthScopes`**. Apps Script los infiere solo, leyendo
+qué servicios usa el código. Para lo que hace este proyecto, la inferencia
+alcanza.
+
+**No los agregues.** Declararlos a mano apaga la inferencia y convierte la
+lista en cerrada: a partir de ahí, cada servicio nuevo (`MailApp`,
+`UrlFetchApp`, etc.) falla hasta que alguien se acuerde de sumar el scope
+correspondiente al manifest. El error que aparece no menciona el manifest por
+ningún lado, así que es prácticamente indiagnosticable para quien no sepa que
+la lista existe. En un proyecto que mantiene alguien que no programa a diario,
+esa trampa cuesta más que la explicitud que da.
+
+Estuvieron declarados un tiempo, agregados durante un debug de permisos
+sospechando que la inferencia dejaba afuera el scope de Drive. **No era eso**
+(ver abajo). Se sacaron al traspasar el proyecto.
+
+### `Access denied: DriveApp` no significa lo que parece
+
+Este error **no** dice que falte un scope ni que la cuenta no tenga acceso al
+archivo. Lo tira `DriveApp` cuando la cuenta tiene el archivo **en modo
+lectura** y se intenta **escribir**.
+
+Pasó exactamente eso: la carpeta de salida es de `grado.fi@ucc.edu.ar` y
+`2400520@ucc.edu.ar` no tiene permiso propio sobre ella (`getAccess` devuelve
+`NONE`). Todas las lecturas andaban y `carpeta.createFile()` fallaba.
+
+Durante meses se creyó que estaba "compartida como Lector con Agus". Era una
+suposición, nunca un dato: nadie había consultado el permiso. Por eso
+`chequearAccesos()` ahora reporta el dueño y el rol efectivo — un diagnóstico
+que dice "no podés escribir" sin decir *de quién es* y *cómo entrás* deja el
+trabajo a medias.
+
+**La carpeta `ID_CARPETA_SALIDA` requiere permiso de Editor** para la cuenta
+que ejecuta, porque la app escribe dos veces ahí: `createFile()` con la ficha
+subida (`WebApp.js`) y `makeCopy()` de la plantilla (`generarNota`).
+
+Cómo se leen los errores de Drive:
+
+| Mensaje | Qué significa |
+|---|---|
+| `Access denied: DriveApp` | Tenés el archivo, pero **de solo lectura**, y estás escribiendo. Pedí Editor. |
+| `Requested entity was not found` / no se encontró el archivo | La cuenta **no tiene acceso** a ese archivo. Pedí que te lo compartan. |
+| `No tienes permiso para llamar a X. Se requiere el permiso: <url>` | Ahí **sí** falta un scope OAuth. Nombra el scope explícitamente. |
+
+**Al diagnosticar permisos, probá una escritura.** Un chequeo que solo lee da
+todo OK con permiso de Lector y manda a buscar el problema donde no está.
+`probarAccesos()` incluye un chequeo de escritura por esta razón.
 
 ---
 
@@ -232,10 +331,30 @@ No hay runner de CLI (Apps Script no tiene). Las funciones de la sección
 PRUEBAS de `Código.js` se corren a mano desde el editor (`clasp open` → elegir
 función → Run):
 
-- `probarLogica()` — lógica pura sobre un texto de muestra. Instantánea, no
-  toca Drive ni Sheets. **Correr siempre después de tocar la sección LÓGICA.**
+- `probarAccesos()` — toca los tres recursos de `CONFIG` por separado y dice
+  cuál falla. No lee ninguna ficha, así que se corre sin datos de nadie.
+  **Correr esta primero ante cualquier error de permisos.** Correrla desde el
+  editor es además lo que dispara la pantalla de consentimiento de Google, así
+  que es el primer paso para cualquier cuenta nueva que vaya a ejecutar esto.
+- `probarLogica()` — lógica pura sobre un texto de muestra con datos
+  inventados. Instantánea, no toca Drive ni Sheets. **Correr siempre después
+  de tocar la sección LÓGICA.**
 - `probarExtraccion()` — extracción sobre una ficha real, sin generar nada.
 - `probarCompleto()` — punta a punta, genera el PDF.
+- `probarPuntaAPunta()` — **la más útil de las cuatro.** Punta a punta sin datos
+  de nadie y sin depender de la carpeta de salida: fabrica la ficha (un Doc con
+  el texto de `FICHA_SINTETICA`, exportado a PDF), la procesa y genera la nota
+  en una carpeta temporal propia que borra al terminar. Redirige
+  `CONFIG.ID_CARPETA_SALIDA` **solo durante esa ejecución**, así que no cambia
+  nada del proyecto ni de la web app deployada. Es la única prueba que verifica
+  el flujo entero cuando la carpeta de salida todavía no tiene permiso de
+  escritura.
+
+Las dos últimas necesitan `ID_FICHA_PRUEBA`, que **va vacío en el repo a
+propósito**: una ficha real trae DNI y domicilio, y no corresponde dejar la de
+nadie fija en el código. Para usarlas: subir una ficha, pegar su ID, correr, y
+volver a vaciar la constante. Si está vacía, las dos cortan con un mensaje que
+explica esto mismo.
 
 Si agregás lógica nueva, sumá su caso a `probarLogica()` en el mismo estilo:
 asserts a mano con `Logger.log`, sin librería de testing (no hay forma de
@@ -267,9 +386,13 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 - `subirYGenerar()` borra la ficha subida apenas se procesa (ver el `finally`).
   **No cambies ese comportamiento sin que te lo pidan.**
 - No agregues logging que persista DNI, nombres completos o domicilios.
-- Para probar, usar la ficha del propio Agus o de alguien que dio el ok.
-  Fichas de alumnos reales en la cuenta personal es un problema que no
-  queremos.
+- **No dejes datos de nadie hardcodeados**, ni siquiera para pruebas.
+  `probarLogica()` usa un alumno inventado y `ID_FICHA_PRUEBA` va vacío.
+- Para probar con una ficha real, usar una de alguien que haya dado el ok, y
+  vaciar `ID_FICHA_PRUEBA` cuando termines.
+- "Borrar" en Drive es mandar a la papelera: la ficha que borra
+  `subirYGenerar()` queda 30 días en la papelera de la cuenta que ejecuta la
+  app. Conviene vaciarla cada tanto.
 
 ---
 
