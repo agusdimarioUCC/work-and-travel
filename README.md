@@ -14,9 +14,6 @@ Antes de tocar algo, leer:
 - **[`CLAUDE.md`](./CLAUDE.md)** — documentación técnica completa: por qué
   Apps Script, reglas de negocio confirmadas, cómo se parsea la ficha, cómo
   deployar con `clasp`, y errores conocidos con su causa real.
-- **[`TRASPASO.md`](./TRASPASO.md)** / [`TRASPASO.pdf`](./TRASPASO.pdf) —
-  guión paso a paso para pasar el proyecto de la cuenta de alumno a la cuenta
-  institucional de la Secretaría.
 
 ## Estructura
 

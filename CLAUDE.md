@@ -62,8 +62,6 @@ appsscript.json Manifest. Ver la sección "Deploy" antes de tocarlo.
 .clasp.json     scriptId y rootDir.
 CLAUDE.md       Este archivo.
 README.md       Portada corta; remite acá.
-TRASPASO.md     Guion del traspaso a grado.fi@ucc.edu.ar (TRASPASO.pdf es
-                la misma cosa impresa: si cambiás uno, regenerá el otro).
 ```
 
 **Flujo de llamadas:** `Index.html` → `google.script.run.subirYGenerar()`
@@ -104,9 +102,14 @@ de la Secretaría). Los cuatro se recrearon el 2026-09-08; los IDs anteriores
 (`1W0EyQ…`, `1bHVdG…`, `1xpY36…`, proyecto `1pfOnVno…`) ya no se usan.
 
 **La planilla y la plantilla siguen siendo de la cuenta de alumno de Agus.**
-Cuando esa cuenta se dé de baja, desaparecen y la app deja de andar. Hay que
-transferirlas a `grado.fi` (no cambia el ID, `CONFIG` queda igual). Ver
-`TRASPASO.md`.
+El mail institucional de Agus es perpetuo (no se da de baja al recibirse), así
+que esto no es una bomba de tiempo por vencimiento de cuenta. Pero son
+recursos institucionales y su control no debería depender de una cuenta
+personal: si Agus la pierde, la comparte mal sin querer, o simplemente deja de
+tener motivo para mantenerla, la Facultad queda a merced de eso. Hay que
+transferirlas a `grado.fi` (no cambia el ID, `CONFIG` queda igual): en Drive,
+compartir como Editor con `grado.fi@ucc.edu.ar` y usar "Transferir propiedad"
+desde el desplegable, aceptando del lado de `grado.fi`.
 
 La carpeta de salida tiene que estar compartida como **Editor** con la cuenta
 que ejecuta: la app crea archivos ahí. Sin eso, todo lo demás anda y falla
@@ -435,12 +438,15 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 
 ## Pendientes
 
-- **Terminar el traspaso a `grado.fi@ucc.edu.ar`** (guion en `TRASPASO.md`).
+- **Terminar el traspaso a `grado.fi@ucc.edu.ar`.**
   Proyecto y carpeta `SALIDAS` ya son de `grado.fi`. Falta:
   - Transferir la planilla y la plantilla, que siguen siendo de `2400520`.
   - Confirmar quién hizo el último deploy ("Ejecutar como" en *Administrar
-    implementaciones*). Si es `2400520`, la app corre con los permisos de Agus y
-    muere con su cuenta: redeployar como `grado.fi`.
+    implementaciones*). Si es `2400520`, la app corre con los permisos de Agus
+    en vez de los de la Secretaría — no es un problema de vencimiento (el mail
+    institucional de Agus es perpetuo), pero sí de que un recurso institucional
+    dependa de una cuenta personal en lugar de la cuenta del área: redeployar
+    como `grado.fi`.
 - `Session.getActiveUser().getEmail()` ya se usa para compartir el PDF. Se
   podría usar también para sacar pasos manuales del formulario.
 - Fila del calendario 2027 cuando se defina.
