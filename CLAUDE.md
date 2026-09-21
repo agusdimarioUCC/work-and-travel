@@ -10,7 +10,11 @@ para trámites de Work and Travel.
 
 **Flujo completo:** el alumno sube el PDF de su Ficha del Alumno en una web
 app → se extraen sus datos del PDF → se cruzan contra dos hojas de referencia
-→ sale la constancia en PDF → Aaron la firma.
+→ sale la constancia en PDF y se le comparte al alumno.
+
+**Duda abierta:** la idea original era que Aaron revisara y firmara cada
+constancia, pero hoy el alumno recibe el link al PDF apenas se genera, sin
+firmar. Falta confirmar con Aaron cuál es el flujo real.
 
 **Volumen:** menos de 100 constancias por temporada. Cualquier propuesta de
 colas de trabajo, reintentos, dashboards de métricas o sistemas de
@@ -20,49 +24,28 @@ notificaciones está sobredimensionada para este proyecto. No las sugieras.
 
 ## Personas
 
-- **Agus** (Agustín Di Mario) — el que desarrolla. Estudiante de 3° año de
-  Ingeniería en Informática en la UCC. Habla y escribe en español rioplatense.
-  Responde bien a que le discutan las ideas; no le endulces las cosas ni
-  valides una decisión mala por evitar fricción.
-- **Aaron** — secretario de grado de la facultad. Encargó la app. No es
-  programador pero usa Apps Script habitualmente. **Es quien va a mantener
-  esto cuando Agus se reciba.** Esa restricción manda sobre las decisiones
-  de arquitectura.
+- **Agus** — el que desarrolla, estudiante de Informática. Español
+  rioplatense. Discutile las ideas; no valides una decisión mala por evitar
+  fricción.
+- **Aaron** — secretario de grado, encargó la app. No es programador pero usa
+  Apps Script. **Es quien lo va a mantener**, y eso manda sobre la
+  arquitectura.
 
 ---
 
 ## Por qué Apps Script (decisión cerrada, no reabrir)
 
-Se evaluó contra un stack propio (Docker + microservicios, que es donde Agus
-tiene experiencia). Ganó Apps Script por:
-
-1. Generar el documento es el 80% del trabajo, y `DocumentApp` + plantilla de
-   Docs lo resuelve en ~30 líneas conservando el formato institucional.
-2. Auth institucional gratis vía el Google Workspace de la facultad.
-3. El mail sale desde la cuenta institucional, con reputación de dominio.
-4. Cero hosting. Una facultad no pone una tarjeta de crédito para el proyecto
-   de un alumno.
-5. **El factor decisivo:** cuando Agus se reciba, Aaron tiene que poder
-   abrirlo. Un sistema que solo Agus puede tocar es un pasivo para la facultad.
-
-Agus tuvo (y tiene) reservas legítimas sobre el ecosistema. Se resolvieron con
-`clasp` + Git + Claude Code, sin cambiar de plataforma. **No propongas migrar
-a otro stack.** Si aparece una limitación real de Apps Script, decila
-concretamente en vez de sugerir un rewrite.
+Ganó contra un stack propio porque Aaron tiene que poder mantenerlo, y además
+da gratis la plantilla de Docs, la autenticación del Workspace y cero hosting.
+**No propongas migrar a otro stack.** Si aparece una limitación real de Apps
+Script, decila concretamente en vez de sugerir un rewrite.
 
 ---
 
-## Estructura del repo
+## Estructura
 
-```
-Código.js       Toda la lógica de negocio.
-WebApp.js       doGet() + endpoint subirYGenerar(). Solo el borde HTTP/UI.
-Index.html      Pantalla de subida (HTML+CSS+JS inline, como pide HtmlService).
-appsscript.json Manifest. Ver la sección "Deploy" antes de tocarlo.
-.clasp.json     scriptId y rootDir.
-CLAUDE.md       Este archivo.
-README.md       Portada corta; remite acá.
-```
+`Código.js` tiene toda la lógica; `WebApp.js` es solo el borde HTTP
+(`doGet` y `subirYGenerar`); `Index.html` es la pantalla de subida.
 
 **Flujo de llamadas:** `Index.html` → `google.script.run.subirYGenerar()`
 (`WebApp.js`) → guarda la ficha en la carpeta de salida → `fichaANota()` →
@@ -98,12 +81,7 @@ No están en Git ni los maneja clasp. Sus IDs viven en `CONFIG` al tope de
 | `ID_CARPETA_SALIDA` | Carpeta `SALIDAS`, donde se dejan los PDF generados | **Editor** | `grado.fi@ucc.edu.ar` |
 
 El proyecto de Apps Script también es de `grado.fi@ucc.edu.ar` (cuenta de área
-de la Secretaría). Los cuatro se recrearon el 2026-09-08; los IDs anteriores
-(`1W0EyQ…`, `1bHVdG…`, `1xpY36…`, proyecto `1pfOnVno…`) ya no se usan.
-
-**Los cuatro recursos ya son de `grado.fi`.** La planilla y la plantilla
-estuvieron un tiempo a nombre de la cuenta de alumno de Agus; se transfirieron
-el 2026-09-21 (confirmado por API de Drive, no solo por UI).
+de la Secretaría).
 
 La carpeta de salida tiene que estar compartida como **Editor** con la cuenta
 que ejecuta: la app crea archivos ahí. Sin eso, todo lo demás anda y falla
@@ -121,22 +99,9 @@ Columnas: `clave, cod_carrera, plan, carrera, duracion_anios,
 cantidad_materias, acred_ingles, acred_rsu, items_plan, inicio_actividad`.
 
 Las últimas cuatro son documentación de cómo se derivó `cantidad_materias`;
-el código solo usa `carrera`, `duracion_anios` y `cantidad_materias`.
-
-Contenido actual (las 10 carreras de la facultad, confirmado — no hay más):
-
-| clave | carrera | años | materias |
-|---|---|---|---|
-| 18-2025 | Tecnicatura Universitaria en Ciencia de Datos | 3 | 28 |
-| 19-2025 | Tecnicatura Universitaria en Desarrollo de Software | 3 | 25 |
-| 14-2023 | Licenciatura en Bioinformática | 4 | 47 |
-| 20-2025 | Licenciatura en Inteligencia Artificial y Ciencia de Datos | 4 | 49 |
-| 03-2023 | Ingeniería Civil | 5 | 75 |
-| 09-2023 | Ingeniería Electrónica | 5 | 66 |
-| 07-2023 | Ingeniería Industrial | 5 | 70 |
-| 05-2023 | Ingeniería Mecánica | 5 | 72 |
-| 10-2023 | Ingeniería en Computación | 5 | 63 |
-| 17-2023 | Ingeniería en Informática | 5 | 62 |
+el código solo usa `carrera`, `duracion_anios` y `cantidad_materias`. Son las
+10 carreras de la facultad (confirmado, no hay más); el contenido vive en la
+planilla, no acá.
 
 ### Hoja `Calendario`
 
@@ -224,14 +189,12 @@ corre en Apps Script.
 
 **La fuente de verdad es el proyecto de Apps Script de `grado.fi`**, no el repo
 ni GitHub. Se edita también desde el editor web, así que el repo puede quedar
-atrás (ya pasó: el 2026-09 el repo apuntaba a un proyecto que ya no existía).
-Antes de tocar código: `clasp pull` a una carpeta aparte y comparar con el
+atrás. Antes de tocar código: `clasp pull` a una carpeta aparte y comparar con el
 repo. Si difieren, gana Apps Script: se trae al repo y se commitea. **Nunca
 `clasp push -f` sin esa comparación**: pisa lo remoto sin preguntar.
 
-**Ojo con la versión de clasp.** Estamos en **v3**, que le cambió el nombre a
-varios comandos. Mucho tutorial de internet (y las respuestas de un LLM que
-no mire esto) están en v2 y fallan con `Unknown command`.
+**Estamos en clasp v3**, que renombró varios comandos. Lo que está en internet
+suele ser v2 y falla con `Unknown command`.
 
 ```bash
 clasp push -f              # sube el estado local (pisa lo remoto). El -f evita
@@ -245,21 +208,16 @@ clasp show-authorized-user # con qué cuenta está logueado clasp
 clasp logout / clasp login # cambiar de cuenta
 ```
 
-**Usá siempre `clasp deploy -i ID`.** `clasp deploy` a secas crea un deployment
-nuevo con otra URL, y la que ya está repartida queda sirviendo la versión
-vieja para siempre. Sacá el ID con `clasp deployments` (es el que tiene
-descripción; el `@HEAD` es otra cosa y no se toca).
+**Usá siempre `clasp deploy -i ID`.** A secas crea un deployment nuevo con
+otra URL, y la repartida queda sirviendo la versión vieja para siempre.
 
-**Si cambiaste `appsscript.json`, `clasp push` pide confirmación.** En una
-terminal no interactiva eso sale como `Skipping push` — no es un error, no
-devuelve código distinto de cero, y el `clasp deploy` que venga después
-deploya el código viejo tan tranquilo. Usá `clasp push -f` y verificá que
+**Sin `-f`, si cambió `appsscript.json`, `clasp push` no sube nada**: en una
+terminal no interactiva dice `Skipping push` y sale con código 0. Verificá que
 diga `Pushed N files`.
 
-**`clasp push` NO actualiza la URL pública.** La web app sigue sirviendo la
-versión vieja hasta que se haga `clasp deploy`. Es el error más común del
-ecosistema. Después de cualquier cambio que deba verse en la URL:
-`clasp push` **y** `clasp deploy`, y decirle a Agus qué se subió.
+**`clasp push` NO actualiza la URL pública**; eso lo hace `clasp deploy`.
+Después de cualquier cambio que deba verse en la URL: los dos, y decirle a
+Agus qué se subió.
 
 ### Configuración de la web app en `appsscript.json`
 
@@ -270,70 +228,40 @@ ecosistema. Después de cualquier cambio que deba verse en la URL:
 }
 ```
 
-`executeAs` **tiene que ser `USER_DEPLOYING`**. Con `USER_ACCESSING` el script
-corre con los permisos de quien abre la URL, y cualquier alumno recibiría
-"no tienes permiso para acceder a él" al tocar la Planilla, la Plantilla o la
-Carpeta — recursos institucionales a los que no tiene ni debe tener acceso.
-Con `USER_DEPLOYING` corre siempre con los permisos de quien hizo el último
-deploy, que es lo que se busca acá.
+`executeAs` **tiene que ser `USER_DEPLOYING`**: con `USER_ACCESSING` corre con
+los permisos del alumno, que no tiene (ni debe tener) acceso a la planilla, la
+plantilla ni la carpeta.
 
-`access` **tiene que ser `DOMAIN`**: cualquier alumno con cuenta `@ucc.edu.ar`
-abre la URL, y nadie de afuera. Es el requisito del proyecto.
+`access` **tiene que ser `DOMAIN`**. **Nunca `ANYONE`**: no significa
+"cualquier alumno" sino cualquiera en internet, y la ficha trae DNI y
+domicilio.
 
-**No lo pongas en `ANYONE` ("Cualquiera").** No significa "cualquier alumno":
-significa cualquiera en internet, incluso sin cuenta de Google. La ficha trae
-DNI y domicilio; el formulario no puede quedar abierto.
-
-**El deployment puede quedar desincronizado del manifest.** Ya pasó: el repo
-decía `MYSELF` y la implementación estaba en `Cualquiera`. Después de un
+**El deployment puede quedar desincronizado del manifest.** Después de un
 `clasp deploy`, verificá en *Implementar → Administrar implementaciones →
 (lápiz)* que "Usuarios con acceso" diga `Cualquier persona de ucc.edu.ar`.
 Lo que vale es lo que dice la UI.
 
-**Quién es "quien hizo el último deploy"**: la cuenta con la que está
-autenticado `clasp` en la máquina, no la que tengas abierta en el navegador.
-Se consulta con **`clasp show-authorized-user`**. Hoy es `2400520@ucc.edu.ar`.
-Cualquier error de permisos se chequea contra **esa** cuenta. Si se deploya
-desde el editor web, cuenta la que está logueada ahí; lo confirma el campo
-"Ejecutar como" en *Administrar implementaciones*.
+**"Quien hizo el último deploy"** es la cuenta de `clasp show-authorized-user`
+si se deployó con clasp, o la logueada en el editor si se deployó desde ahí.
+Los errores de permisos se chequean contra esa cuenta.
 
 Deployment en uso: `AKfycbyynGlujVlmAfv6WFTl51fhCK7huZEuxcq3jNwC486hc7LrGMzpfiDbTu2zoJTNsXgJhg`
 (versión 10 al 2026-09-21). El `@HEAD` (`AKfycbxVT3Rq…`) no se toca.
 
 ### `oauthScopes`: no están, y es a propósito
 
-El manifest **no declara `oauthScopes`**. Apps Script los infiere solo, leyendo
-qué servicios usa el código. Para lo que hace este proyecto, la inferencia
-alcanza.
-
-**No los agregues.** Declararlos a mano apaga la inferencia y convierte la
-lista en cerrada: a partir de ahí, cada servicio nuevo (`MailApp`,
-`UrlFetchApp`, etc.) falla hasta que alguien se acuerde de sumar el scope
-correspondiente al manifest. El error que aparece no menciona el manifest por
-ningún lado, así que es prácticamente indiagnosticable para quien no sepa que
-la lista existe. En un proyecto que mantiene alguien que no programa a diario,
-esa trampa cuesta más que la explicitud que da.
-
-Estuvieron declarados un tiempo, agregados durante un debug de permisos
-sospechando que la inferencia dejaba afuera el scope de Drive. **No era eso**
-(ver abajo). Se sacaron al traspasar el proyecto.
+Apps Script los infiere del código. **No los agregues**: declararlos apaga la
+inferencia, y cada servicio nuevo que se use después falla con un error que no
+menciona el manifest. Para quien no programa a diario es indiagnosticable. Si
+un error de Drive parece de scopes, leé primero la sección siguiente: casi
+nunca lo es.
 
 ### `Access denied: DriveApp` no significa lo que parece
 
 Este error **no** dice que falte un scope ni que la cuenta no tenga acceso al
 archivo. Lo tira `DriveApp` cuando la cuenta tiene el archivo **en modo
-lectura** y se intenta **escribir**.
-
-Pasó exactamente eso en agosto de 2026, con la carpeta de salida anterior: era
-de `grado.fi@ucc.edu.ar` y `2400520@ucc.edu.ar` no tenía permiso propio sobre
-ella (`getAccess` devolvía `NONE`). Todas las lecturas andaban y
-`carpeta.createFile()` fallaba.
-
-Durante meses se creyó que estaba "compartida como Lector con Agus". Era una
-suposición, nunca un dato: nadie había consultado el permiso. Por eso
-`chequearAccesos()` ahora reporta el dueño y el rol efectivo — un diagnóstico
-que dice "no podés escribir" sin decir *de quién es* y *cómo entrás* deja el
-trabajo a medias.
+lectura** y se intenta **escribir**. Por eso `chequearAccesos()` reporta el
+dueño y el rol efectivo: no supongas permisos, consultalos.
 
 **La carpeta `ID_CARPETA_SALIDA` requiere permiso de Editor** para la cuenta
 que ejecuta, porque la app escribe dos veces ahí: `createFile()` con la ficha
@@ -359,30 +287,17 @@ No hay runner de CLI (Apps Script no tiene). Las funciones de la sección
 PRUEBAS de `Código.js` se corren a mano desde el editor (`clasp open-script` → elegir
 función → Run):
 
-- `probarAccesos()` — toca los tres recursos de `CONFIG` por separado y dice
-  cuál falla. No lee ninguna ficha, así que se corre sin datos de nadie.
-  **Correr esta primero ante cualquier error de permisos.** Correrla desde el
-  editor es además lo que dispara la pantalla de consentimiento de Google, así
-  que es el primer paso para cualquier cuenta nueva que vaya a ejecutar esto.
-- `probarLogica()` — lógica pura sobre un texto de muestra con datos
-  inventados. Instantánea, no toca Drive ni Sheets. **Correr siempre después
-  de tocar la sección LÓGICA.**
-- `probarExtraccion()` — extracción sobre una ficha real, sin generar nada.
-- `probarCompleto()` — punta a punta, genera el PDF.
-- `probarPuntaAPunta()` — **la más útil de todas.** Punta a punta sin datos
-  de nadie y sin depender de la carpeta de salida: fabrica la ficha (un Doc con
-  el texto de `FICHA_SINTETICA`, exportado a PDF), la procesa y genera la nota
-  en una carpeta temporal propia que borra al terminar. Redirige
-  `CONFIG.ID_CARPETA_SALIDA` **solo durante esa ejecución**, así que no cambia
-  nada del proyecto ni de la web app deployada. Es la única prueba que verifica
-  el flujo entero cuando la carpeta de salida todavía no tiene permiso de
-  escritura.
-
-Las dos últimas necesitan `ID_FICHA_PRUEBA`, que **va vacío en el repo a
-propósito**: una ficha real trae DNI y domicilio, y no corresponde dejar la de
-nadie fija en el código. Para usarlas: subir una ficha, pegar su ID, correr, y
-volver a vaciar la constante. Si está vacía, las dos cortan con un mensaje que
-explica esto mismo.
+- `probarAccesos()` — toca los tres recursos de `CONFIG` y dice cuál falla,
+  con dueño y rol. **Primero ante cualquier error de permisos**, y el primer
+  paso para una cuenta nueva (dispara el consentimiento de Google).
+- `probarLogica()` — lógica pura con datos inventados, instantánea. **Correr
+  siempre después de tocar LÓGICA.**
+- `probarPuntaAPunta()` — **la más útil.** Punta a punta con una ficha
+  fabricada a partir de `FICHA_SINTETICA`, en una carpeta temporal que borra
+  al terminar.
+- `probarExtraccion()` / `probarCompleto()` — sobre una ficha real. Necesitan
+  `ID_FICHA_PRUEBA`, que **va vacío en el repo a propósito** (DNI y
+  domicilio): pegar el ID, correr y volver a vaciarlo.
 
 Si agregás lógica nueva, sumá su caso a `probarLogica()` en el mismo estilo:
 asserts a mano con `Logger.log`, sin librería de testing (no hay forma de
