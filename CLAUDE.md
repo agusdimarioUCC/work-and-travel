@@ -225,6 +225,13 @@ apellidos compuestos (el regex de nombre parte por la primera coma).
 **No hay build ni bundler.** Cada archivo del repo es literalmente lo que
 corre en Apps Script.
 
+**La fuente de verdad es el proyecto de Apps Script de `grado.fi`**, no el repo
+ni GitHub. Se edita también desde el editor web, así que el repo puede quedar
+atrás (ya pasó: el 2026-09 el repo apuntaba a un proyecto que ya no existía).
+Antes de tocar código: `clasp pull` a una carpeta aparte y comparar con el
+repo. Si difieren, gana Apps Script: se trae al repo y se commitea. **Nunca
+`clasp push -f` sin esa comparación**: pisa lo remoto sin preguntar.
+
 **Ojo con la versión de clasp.** Estamos en **v3**, que le cambió el nombre a
 varios comandos. Mucho tutorial de internet (y las respuestas de un LLM que
 no mire esto) están en v2 y fallan con `Unknown command`.
