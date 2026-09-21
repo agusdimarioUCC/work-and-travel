@@ -59,7 +59,7 @@ habilitado en `appsscript.json` (`enabledAdvancedServices`, v3). No es lo mismo
 que `DriveApp`: si se saca del manifest, la conversión PDF→Doc deja de andar.
 
 `Código.js` está dividido en secciones con separadores de comentario:
-**CONFIG · LÓGICA · DATOS · PDF→TEXTO · GENERACIÓN · ORQUESTACIÓN · PRUEBAS**.
+**CONFIG · LÓGICA · DATOS · PDF→TEXTO · GENERACIÓN · ORQUESTACIÓN · MANTENIMIENTO · PRUEBAS**.
 
 Las funciones de **LÓGICA** son puras a propósito: no llaman a
 `DriveApp`/`SpreadsheetApp`/`DocumentApp`. Eso permite testearlas sin red y
@@ -110,6 +110,17 @@ Cargado: `2026, 13/11/2026, 09/03/2027`.
 
 Cuando llegue 2027 hay que agregar la fila. Si falta el año en curso, el
 código no explota: deja las fechas vacías y emite un aviso.
+
+### Cómo se protege la planilla
+
+- **En el código:** las dos hojas se leen por **nombre de columna**
+  (`ubicarColumnas`), nunca por posición, y `validarPlan` exige enteros
+  positivos. Si falta una columna o un valor no sirve, tira error: antes una
+  celda con texto terminaba como "NaN años" en la nota, sin aviso.
+- **En la planilla:** `blindarPlanilla()` (sección MANTENIMIENTO) protege los
+  encabezados con advertencia, pone validación por columna y deja `clave` en
+  formato texto. Se corre a mano desde el editor, y otra vez si se recrea la
+  planilla. Al final loguea las celdas ya cargadas que no cumplen.
 
 ### Plantilla (Doc)
 

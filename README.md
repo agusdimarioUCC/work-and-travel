@@ -20,7 +20,7 @@ Antes de tocar algo, leer:
 ```
 Código.js       Toda la lógica de negocio, dividida en secciones:
                 CONFIG · LÓGICA · DATOS · PDF→TEXTO · GENERACIÓN ·
-                ORQUESTACIÓN · PRUEBAS
+                ORQUESTACIÓN · MANTENIMIENTO · PRUEBAS
 WebApp.js       doGet() + el endpoint subirYGenerar(). Solo el borde HTTP/UI.
 Index.html      Pantalla de subida.
 appsscript.json Manifest de Apps Script.

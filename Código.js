@@ -161,6 +161,37 @@ function armarDatosNota(ficha, plan, calendario, anioActual) {
   };
 }
 
+/**
+ * Índice de cada columna pedida, buscada por nombre en la fila de encabezados.
+ * Si falta alguna, tira error: leer por posición, o seguir con una columna que
+ * no está, pone datos equivocados en la nota sin que nadie lo note.
+ */
+function ubicarColumnas(encabezados, nombres, hoja) {
+  const cab = encabezados.map(c => String(c).trim());
+  const faltan = nombres.filter(n => cab.indexOf(n) === -1);
+  if (faltan.length) {
+    throw new Error('En la hoja ' + hoja + ' faltan las columnas: ' + faltan.join(', ') +
+      '. Revisá que la primera fila tenga esos nombres exactos.');
+  }
+  const indices = {};
+  nombres.forEach(n => { indices[n] = cab.indexOf(n); });
+  return indices;
+}
+
+/** Tira error si la fila del plan tiene algo que no sirve para la nota. */
+function validarPlan(plan) {
+  const enteroPositivo = n => Number.isInteger(n) && n > 0;
+  const problemas = [];
+  if (!plan.carrera) problemas.push('la carrera está vacía');
+  if (!enteroPositivo(plan.duracion)) problemas.push('duracion_anios no es un entero positivo');
+  if (!enteroPositivo(plan.materias)) problemas.push('cantidad_materias no es un entero positivo');
+  if (problemas.length) {
+    throw new Error('La fila ' + plan.clave + ' de la hoja Planes está mal cargada: ' +
+      problemas.join(', ') + '. Corregila antes de generar esta nota.');
+  }
+  return plan;
+}
+
 
 // ============================================================
 // DATOS (Sheets)
@@ -171,17 +202,17 @@ function leerPlan(clave) {
   if (!hoja) throw new Error('No existe la hoja "Planes" en la planilla.');
 
   const filas = hoja.getDataRange().getValues();
-  const cab = filas[0].map(String);
-  const col = n => cab.indexOf(n);
+  const col = ubicarColumnas(filas[0],
+    ['clave', 'carrera', 'duracion_anios', 'cantidad_materias'], 'Planes');
 
   for (let i = 1; i < filas.length; i++) {
-    if (String(filas[i][col('clave')]).trim() === clave) {
-      return {
+    if (String(filas[i][col.clave]).trim() === clave) {
+      return validarPlan({
         clave: clave,
-        carrera: String(filas[i][col('carrera')]).trim(),
-        duracion: Number(filas[i][col('duracion_anios')]),
-        materias: Number(filas[i][col('cantidad_materias')])
-      };
+        carrera: String(filas[i][col.carrera]).trim(),
+        duracion: Number(filas[i][col.duracion_anios]),
+        materias: Number(filas[i][col.cantidad_materias])
+      });
     }
   }
   throw new Error('No hay plan cargado para la clave ' + clave +
@@ -193,12 +224,15 @@ function leerCalendario(anio) {
   if (!hoja) throw new Error('No existe la hoja "Calendario" en la planilla.');
 
   const filas = hoja.getDataRange().getValues();
+  const col = ubicarColumnas(filas[0],
+    ['anio', 'fin_clases', 'inicio_clases_siguiente'], 'Calendario');
+
   for (let i = 1; i < filas.length; i++) {
-    if (Number(filas[i][0]) === Number(anio)) {
+    if (Number(filas[i][col.anio]) === Number(anio)) {
       return {
         anio: anio,
-        finClases: formatearFecha(filas[i][1]),
-        inicioClasesSig: formatearFecha(filas[i][2])
+        finClases: formatearFecha(filas[i][col.fin_clases]),
+        inicioClasesSig: formatearFecha(filas[i][col.inicio_clases_siguiente])
       };
     }
   }
@@ -326,6 +360,120 @@ function fichaANota(idArchivoPdf) {
 
 
 // ============================================================
+// MANTENIMIENTO
+// ============================================================
+
+/**
+ * Protege la planilla contra errores de carga. Se corre a mano desde el editor,
+ * y se puede volver a correr las veces que haga falta (rehace todo):
+ *
+ *   - Encabezados de Planes y Calendario protegidos con advertencia. El código
+ *     busca las columnas por esos nombres; si alguien los cambia, la app frena.
+ *   - Validación por columna: rechaza lo que no sea un valor válido.
+ *   - La columna clave en formato texto, para que Sheets no convierta
+ *     "03-2023" en una fecha.
+ *
+ * Sheets no borra lo que ya estaba cargado y no cumple la validación: solo lo
+ * marca. Por eso al final loguea esas celdas, para corregirlas a mano.
+ */
+function blindarPlanilla() {
+  const planilla = SpreadsheetApp.openById(CONFIG.ID_PLANILLA);
+  const DESCRIPCION = 'Encabezados: el código busca las columnas por estos nombres';
+  const letra = i => String.fromCharCode(65 + i);
+  const columna = (hoja, i) => hoja.getRange(2, i + 1, hoja.getMaxRows() - 1, 1);
+  const validar = (hoja, i, formula, ayuda) => columna(hoja, i).setDataValidation(
+    SpreadsheetApp.newDataValidation().requireFormulaSatisfied(formula)
+      .setAllowInvalid(false).setHelpText(ayuda).build());
+  // Condiciones (sin el =AND) de "entero entre min y max" para la celda de la fila 2.
+  const entero = (i, min, max) => {
+    const c = letra(i) + '2';
+    return 'ISNUMBER(' + c + '),' + c + '=INT(' + c + '),' +
+      c + '>=' + min + ',' + c + '<=' + max;
+  };
+  const protegerEncabezados = hoja => {
+    hoja.getProtections(SpreadsheetApp.ProtectionType.RANGE)
+      .filter(p => p.getDescription() === DESCRIPCION)
+      .forEach(p => p.remove());
+    hoja.getRange(1, 1, 1, hoja.getLastColumn()).protect()
+      .setDescription(DESCRIPCION).setWarningOnly(true);
+  };
+  const problemas = [];
+
+  // --- Planes
+  const planes = planilla.getSheetByName('Planes');
+  const filasP = planes.getDataRange().getValues();
+  const p = ubicarColumnas(filasP[0],
+    ['clave', 'carrera', 'duracion_anios', 'cantidad_materias'], 'Planes');
+  const k = letra(p.clave);
+
+  protegerEncabezados(planes);
+  columna(planes, p.clave).setNumberFormat('@');
+  validar(planes, p.clave,
+    '=AND(REGEXMATCH(TO_TEXT(' + k + '2),"^\\d{2}-\\d{4}$"),' +
+    'SUMPRODUCT(--($' + k + '$2:$' + k + '=' + k + '2))=1)',
+    'Código de carrera y plan, ej: 17-2023. No puede repetirse.');
+  validar(planes, p.duracion_anios, '=AND(' + entero(p.duracion_anios, 1, 10) + ')',
+    'Duración en años: número entero entre 1 y 10.');
+  validar(planes, p.cantidad_materias, '=AND(' + entero(p.cantidad_materias, 1, 150) + ')',
+    'Cantidad de materias: número entero entre 1 y 150.');
+
+  const vistas = {};
+  for (let i = 1; i < filasP.length; i++) {
+    const clave = String(filasP[i][p.clave]).trim();
+    if (!clave) continue;
+    if (!/^\d{2}-\d{4}$/.test(clave)) {
+      problemas.push('Planes, fila ' + (i + 1) + ': la clave "' + clave + '" no tiene ' +
+        'el formato 17-2023. Si Sheets la convirtió en fecha, volvé a escribirla.');
+    }
+    if (vistas[clave]) problemas.push('Planes, fila ' + (i + 1) + ': la clave ' + clave +
+      ' está repetida (también en la fila ' + vistas[clave] + ').');
+    vistas[clave] = i + 1;
+    try {
+      validarPlan({
+        clave: clave,
+        carrera: String(filasP[i][p.carrera]).trim(),
+        duracion: Number(filasP[i][p.duracion_anios]),
+        materias: Number(filasP[i][p.cantidad_materias])
+      });
+    } catch (e) {
+      problemas.push('Planes, fila ' + (i + 1) + ': ' + e.message);
+    }
+  }
+
+  // --- Calendario
+  const calendario = planilla.getSheetByName('Calendario');
+  const filasC = calendario.getDataRange().getValues();
+  const c = ubicarColumnas(filasC[0],
+    ['anio', 'fin_clases', 'inicio_clases_siguiente'], 'Calendario');
+  const a = letra(c.anio);
+
+  protegerEncabezados(calendario);
+  validar(calendario, c.anio,
+    '=AND(' + entero(c.anio, 2020, 2100) + ',' +
+    'COUNTIF($' + a + '$2:$' + a + ',' + a + '2)=1)',
+    'Año: número entero, una sola fila por año.');
+  ['fin_clases', 'inicio_clases_siguiente'].forEach(n => columna(calendario, c[n])
+    .setDataValidation(SpreadsheetApp.newDataValidation().requireDate()
+      .setAllowInvalid(false).setHelpText('Fecha, ej: 13/11/2026.').build()));
+
+  for (let i = 1; i < filasC.length; i++) {
+    if (filasC[i][c.anio] === '') continue;
+    ['fin_clases', 'inicio_clases_siguiente'].forEach(n => {
+      const v = filasC[i][c[n]];
+      if (v !== '' && !(v instanceof Date)) {
+        problemas.push('Calendario, fila ' + (i + 1) + ': ' + n + ' ("' + v + '") está ' +
+          'cargada como texto, no como fecha. Volvé a escribirla.');
+      }
+    });
+  }
+
+  Logger.log(problemas.length
+    ? 'Planilla blindada, pero hay celdas ya cargadas que corregir:\n- ' + problemas.join('\n- ')
+    : 'Planilla blindada. Todo lo cargado cumple la validación.');
+}
+
+
+// ============================================================
 // PRUEBAS
 // ============================================================
 
@@ -363,7 +511,21 @@ function probarLogica() {
     && calcularAnioQueCursa(2024, 5, 2026) === 3
     && calcularAnioQueCursa(2018, 5, 2026) === 5;   // topeado por la duración
 
-  Logger.log(ok ? 'OK' : 'FALLA:\n' + JSON.stringify(ficha, null, 2));
+  // Planilla: columnas por nombre, y filas mal cargadas que tienen que frenar.
+  const tira = f => { try { f(); return false; } catch (e) { return true; } };
+  const planOk = { clave: '17-2023', carrera: 'Ingeniería', duracion: 5, materias: 62 };
+  const okPlanilla =
+       ubicarColumnas(['anio', ' fin_clases ', 'x'], ['fin_clases', 'anio'], 'C').fin_clases === 1
+    && tira(() => ubicarColumnas(['clave', 'carrera'], ['clave', 'duracion_anios'], 'Planes'))
+    && validarPlan(planOk) === planOk
+    && tira(() => validarPlan(Object.assign({}, planOk, { duracion: NaN })))    // texto en la celda
+    && tira(() => validarPlan(Object.assign({}, planOk, { materias: 0 })))      // celda vacía
+    && tira(() => validarPlan(Object.assign({}, planOk, { materias: 62.5 })))
+    && tira(() => validarPlan(Object.assign({}, planOk, { carrera: '' })));
+
+  Logger.log(ok && okPlanilla ? 'OK' :
+    'FALLA' + (okPlanilla ? '' : ' (validación de la planilla)') + ':\n' +
+    JSON.stringify(ficha, null, 2));
 }
 
 /** Corta con un mensaje claro si no se cargó una ficha para probar. */
