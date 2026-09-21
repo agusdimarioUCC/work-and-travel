@@ -294,7 +294,9 @@ todo OK con permiso de Lector y manda a buscar el problema donde no está.
 
 ## Testing
 
-No hay runner de CLI (Apps Script no tiene). Las funciones de la sección
+No hay runner de CLI (Apps Script no tiene), y **`clasp run <función>` no
+sirve como reemplazo**: tira `Error code NOT_FOUND` porque el proyecto no
+está vinculado a un GCP estándar. Las funciones de la sección
 PRUEBAS de `Código.js` se corren a mano desde el editor (`clasp open-script` → elegir
 función → Run):
 
@@ -358,6 +360,13 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 
 ## Pendientes
 
+- **`blindarPlanilla()` y la validación por nombre de columna están en el
+  editor (pusheadas) pero sin correr contra la planilla real.** Falta, desde
+  `clasp open-script`: `probarLogica()` → `probarPuntaAPunta()` →
+  `blindarPlanilla()`, revisar el log de celdas que no cumplen, y deployar
+  (`clasp deploy -i AKfycbyynGlu...`) si todo da bien. `clasp run` no sirve
+  para esto (ver más abajo). Hasta entonces la planilla real sigue sin
+  encabezados protegidos ni validación de datos.
 - Sin verificar con qué cuenta corre la web app ("Ejecutar como" en
   *Administrar implementaciones*). No es urgente.
 - `Session.getActiveUser().getEmail()` ya se usa para compartir el PDF. Se
