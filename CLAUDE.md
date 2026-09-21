@@ -93,23 +93,17 @@ No están en Git ni los maneja clasp. Sus IDs viven en `CONFIG` al tope de
 
 | Recurso | Qué es | Permiso que necesita la cuenta que ejecuta | Dueño (al 2026-09-21) |
 |---|---|---|---|
-| `ID_PLANILLA` | Google Sheets "Planes", con las hojas `Planes` y `Calendario` | Lector | **`2400520@ucc.edu.ar`** |
-| `ID_PLANTILLA` | Google Doc "A quien corresponda_", con el texto y los placeholders | Lector | **`2400520@ucc.edu.ar`** |
+| `ID_PLANILLA` | Google Sheets "Planes", con las hojas `Planes` y `Calendario` | Lector | `grado.fi@ucc.edu.ar` |
+| `ID_PLANTILLA` | Google Doc "A quien corresponda_", con el texto y los placeholders | Lector | `grado.fi@ucc.edu.ar` |
 | `ID_CARPETA_SALIDA` | Carpeta `SALIDAS`, donde se dejan los PDF generados | **Editor** | `grado.fi@ucc.edu.ar` |
 
 El proyecto de Apps Script también es de `grado.fi@ucc.edu.ar` (cuenta de área
 de la Secretaría). Los cuatro se recrearon el 2026-09-08; los IDs anteriores
 (`1W0EyQ…`, `1bHVdG…`, `1xpY36…`, proyecto `1pfOnVno…`) ya no se usan.
 
-**La planilla y la plantilla siguen siendo de la cuenta de alumno de Agus.**
-El mail institucional de Agus es perpetuo (no se da de baja al recibirse), así
-que esto no es una bomba de tiempo por vencimiento de cuenta. Pero son
-recursos institucionales y su control no debería depender de una cuenta
-personal: si Agus la pierde, la comparte mal sin querer, o simplemente deja de
-tener motivo para mantenerla, la Facultad queda a merced de eso. Hay que
-transferirlas a `grado.fi` (no cambia el ID, `CONFIG` queda igual): en Drive,
-compartir como Editor con `grado.fi@ucc.edu.ar` y usar "Transferir propiedad"
-desde el desplegable, aceptando del lado de `grado.fi`.
+**Los cuatro recursos ya son de `grado.fi`.** La planilla y la plantilla
+estuvieron un tiempo a nombre de la cuenta de alumno de Agus; se transfirieron
+el 2026-09-21 (confirmado por API de Drive, no solo por UI).
 
 La carpeta de salida tiene que estar compartida como **Editor** con la cuenta
 que ejecuta: la app crea archivos ahí. Sin eso, todo lo demás anda y falla
@@ -438,15 +432,8 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 
 ## Pendientes
 
-- **Terminar el traspaso a `grado.fi@ucc.edu.ar`.**
-  Proyecto y carpeta `SALIDAS` ya son de `grado.fi`. Falta:
-  - Transferir la planilla y la plantilla, que siguen siendo de `2400520`.
-  - Confirmar quién hizo el último deploy ("Ejecutar como" en *Administrar
-    implementaciones*). Si es `2400520`, la app corre con los permisos de Agus
-    en vez de los de la Secretaría — no es un problema de vencimiento (el mail
-    institucional de Agus es perpetuo), pero sí de que un recurso institucional
-    dependa de una cuenta personal en lugar de la cuenta del área: redeployar
-    como `grado.fi`.
+- Sin verificar con qué cuenta corre la web app ("Ejecutar como" en
+  *Administrar implementaciones*). No es urgente.
 - `Session.getActiveUser().getEmail()` ya se usa para compartir el PDF. Se
   podría usar también para sacar pasos manuales del formulario.
 - Fila del calendario 2027 cuando se defina.
