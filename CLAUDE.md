@@ -298,7 +298,7 @@ desde el editor web, cuenta la que está logueada ahí; lo confirma el campo
 "Ejecutar como" en *Administrar implementaciones*.
 
 Deployment en uso: `AKfycbyynGlujVlmAfv6WFTl51fhCK7huZEuxcq3jNwC486hc7LrGMzpfiDbTu2zoJTNsXgJhg`
-(versión 9 al 2026-09-21). El `@HEAD` (`AKfycbxVT3Rq…`) no se toca.
+(versión 10 al 2026-09-21). El `@HEAD` (`AKfycbxVT3Rq…`) no se toca.
 
 ### `oauthScopes`: no están, y es a propósito
 
