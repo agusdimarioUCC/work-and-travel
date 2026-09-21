@@ -14,14 +14,13 @@
 // ============================================================
 
 const CONFIG = {
-  ID_PLANILLA: '1W0EyQSpzkPm9oFQaB7bM7mY9PBFeElqTN5kFbXlMNrc',   // hojas "Planes" y "Calendario"
-  ID_PLANTILLA: '1bHVdGrIONdfZ_FMpG4jCDdOqWYZVr6eT7TOg06vW9E8',
-  ID_CARPETA_SALIDA: '1xpY367mDJiUwtecAr_nJtmRTJILrDOub',
+  ID_PLANILLA: '1U0IEygsMU0hsesUHbmhNiMD6fSwaPE4fS7lqmaBPJ04',   // hojas "Planes" y "Calendario" (Google Sheets nativo)
+  ID_PLANTILLA: '1jhI-qM0_Yd1HdbCA9W0QlbYjbX4Llap8-Q-SA3hgbb0',   // plantilla de la nota (Google Docs nativo)
+  ID_CARPETA_SALIDA: '1xYDMz4UdAeQWr8X7Opaqg8Ey3Skf3mI5',
   INSTITUCION: 'Universidad Católica de Córdoba - Facultad de Ingeniería',
   MODALIDAD: 'Presencial',
   ZONA_HORARIA: 'America/Argentina/Cordoba'
 };
-
 
 // ============================================================
 // LÓGICA (funciones puras)
@@ -273,6 +272,18 @@ function generarNota(datos) {
   // Se vuelve a pedir el archivo por ID para que el export vea los cambios ya guardados.
   const pdfBlob = DriveApp.getFileById(copia.getId()).getAs('application/pdf');
   const pdf = carpeta.createFile(pdfBlob).setName(nombreArchivo + '.pdf');
+
+  // La web app corre como el usuario del deployment, no como el alumno, y el PDF
+  // nace con los permisos de la carpeta SALIDAS. Le damos acceso de lectura SOLO
+  // al alumno que generó esta constancia: así puede abrir el link que le
+  // devolvemos y ningún alumno ve la ficha de otro.
+  const alumno = Session.getActiveUser().getEmail();
+  if (alumno) {
+    pdf.addViewer(alumno);
+  } else {
+    // Sin identidad del alumno (raro, mismo dominio): al menos que sirva el link.
+    pdf.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);
+  }
 
   copia.setTrashed(true);                                  // queda solo el PDF
   return pdf;

@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Nota Institucional - Work and Travel (UCC)
 
 Google Apps Script. Genera la constancia de alumno regular que piden los
@@ -57,7 +61,21 @@ Index.html      Pantalla de subida (HTML+CSS+JS inline, como pide HtmlService).
 appsscript.json Manifest. Ver la sección "Deploy" antes de tocarlo.
 .clasp.json     scriptId y rootDir.
 CLAUDE.md       Este archivo.
+README.md       Portada corta; remite acá.
+TRASPASO.md     Guion del traspaso a grado.fi@ucc.edu.ar (TRASPASO.pdf es
+                la misma cosa impresa: si cambiás uno, regenerá el otro).
 ```
+
+**Flujo de llamadas:** `Index.html` → `google.script.run.subirYGenerar()`
+(`WebApp.js`) → guarda la ficha en la carpeta de salida → `fichaANota()` →
+`procesarFicha()` (`pdfATexto` → `extraerFicha` → `leerPlan` / `leerCalendario`
+→ `armarDatosNota`) → `aprobarYGenerar()` → `generarNota()` → borra la ficha en
+el `finally`. `procesarFicha` y `aprobarYGenerar` están separadas para poder
+mostrar los datos antes de generar, aunque la web app hoy hace todo de una.
+
+`pdfATexto()` usa el **servicio avanzado de Drive** (`Drive.Files.create`),
+habilitado en `appsscript.json` (`enabledAdvancedServices`, v3). No es lo mismo
+que `DriveApp`: si se saca del manifest, la conversión PDF→Doc deja de andar.
 
 `Código.js` está dividido en secciones con separadores de comentario:
 **CONFIG · LÓGICA · DATOS · PDF→TEXTO · GENERACIÓN · ORQUESTACIÓN · PRUEBAS**.
@@ -75,26 +93,26 @@ función de esa sección.
 No están en Git ni los maneja clasp. Sus IDs viven en `CONFIG` al tope de
 `Código.js`:
 
-| Recurso | Qué es | Permiso que necesita la cuenta que ejecuta |
-|---|---|---|
-| `ID_PLANILLA` | Google Sheets con las hojas `Planes` y `Calendario` | Lector |
-| `ID_PLANTILLA` | Google Doc con el texto de la nota y los placeholders | Lector |
-| `ID_CARPETA_SALIDA` | Carpeta de Drive donde se dejan los PDF generados | **Editor** |
+| Recurso | Qué es | Permiso que necesita la cuenta que ejecuta | Dueño (al 2026-09-21) |
+|---|---|---|---|
+| `ID_PLANILLA` | Google Sheets "Planes", con las hojas `Planes` y `Calendario` | Lector | **`2400520@ucc.edu.ar`** |
+| `ID_PLANTILLA` | Google Doc "A quien corresponda_", con el texto y los placeholders | Lector | **`2400520@ucc.edu.ar`** |
+| `ID_CARPETA_SALIDA` | Carpeta `SALIDAS`, donde se dejan los PDF generados | **Editor** | `grado.fi@ucc.edu.ar` |
 
-`ID_CARPETA_SALIDA` **no es del Drive de Aaron ni de la cuenta que ejecuta: su
-dueño es `grado.fi@ucc.edu.ar`**, una cuenta de área de la Secretaría
-(verificado el 2026-08-25 con `probarAccesos()`). Tiene que estar compartida
-como **Editor** con la cuenta que ejecuta: la app crea archivos ahí. Sin eso,
-todo lo demás anda y falla recién al generar. Ver "`Access denied: DriveApp` no
-significa lo que parece".
+El proyecto de Apps Script también es de `grado.fi@ucc.edu.ar` (cuenta de área
+de la Secretaría). Los cuatro se recrearon el 2026-09-08; los IDs anteriores
+(`1W0EyQ…`, `1bHVdG…`, `1xpY36…`, proyecto `1pfOnVno…`) ya no se usan.
 
-Al 2026-08-25, `2400520@ucc.edu.ar` entra a esa carpeta como **`NONE`**: no
-tiene permiso propio, la ve por herencia del dominio o por enlace. Por eso lee
-y no escribe.
-
-**Que la carpeta ya sea de una cuenta institucional es la salida limpia:** si la
-app se ejecuta *como* esa cuenta, no hay permisos cruzados que mantener. Ver
+**La planilla y la plantilla siguen siendo de la cuenta de alumno de Agus.**
+Cuando esa cuenta se dé de baja, desaparecen y la app deja de andar. Hay que
+transferirlas a `grado.fi` (no cambia el ID, `CONFIG` queda igual). Ver
 `TRASPASO.md`.
+
+La carpeta de salida tiene que estar compartida como **Editor** con la cuenta
+que ejecuta: la app crea archivos ahí. Sin eso, todo lo demás anda y falla
+recién al generar. Ver "`Access denied: DriveApp` no significa lo que parece".
+Con qué rol entra hoy la cuenta que ejecuta a `SALIDAS`: **sin verificar**
+(correr `probarAccesos()`).
 
 ### Hoja `Planes`
 
@@ -271,7 +289,12 @@ Lo que vale es lo que dice la UI.
 **Quién es "quien hizo el último deploy"**: la cuenta con la que está
 autenticado `clasp` en la máquina, no la que tengas abierta en el navegador.
 Se consulta con **`clasp show-authorized-user`**. Hoy es `2400520@ucc.edu.ar`.
-Cualquier error de permisos se chequea contra **esa** cuenta.
+Cualquier error de permisos se chequea contra **esa** cuenta. Si se deploya
+desde el editor web, cuenta la que está logueada ahí; lo confirma el campo
+"Ejecutar como" en *Administrar implementaciones*.
+
+Deployment en uso: `AKfycbyynGlujVlmAfv6WFTl51fhCK7huZEuxcq3jNwC486hc7LrGMzpfiDbTu2zoJTNsXgJhg`
+(versión 9 al 2026-09-21). El `@HEAD` (`AKfycbxVT3Rq…`) no se toca.
 
 ### `oauthScopes`: no están, y es a propósito
 
@@ -297,9 +320,10 @@ Este error **no** dice que falte un scope ni que la cuenta no tenga acceso al
 archivo. Lo tira `DriveApp` cuando la cuenta tiene el archivo **en modo
 lectura** y se intenta **escribir**.
 
-Pasó exactamente eso: la carpeta de salida es de `grado.fi@ucc.edu.ar` y
-`2400520@ucc.edu.ar` no tiene permiso propio sobre ella (`getAccess` devuelve
-`NONE`). Todas las lecturas andaban y `carpeta.createFile()` fallaba.
+Pasó exactamente eso en agosto de 2026, con la carpeta de salida anterior: era
+de `grado.fi@ucc.edu.ar` y `2400520@ucc.edu.ar` no tenía permiso propio sobre
+ella (`getAccess` devolvía `NONE`). Todas las lecturas andaban y
+`carpeta.createFile()` fallaba.
 
 Durante meses se creyó que estaba "compartida como Lector con Agus". Era una
 suposición, nunca un dato: nadie había consultado el permiso. Por eso
@@ -328,7 +352,7 @@ todo OK con permiso de Lector y manda a buscar el problema donde no está.
 ## Testing
 
 No hay runner de CLI (Apps Script no tiene). Las funciones de la sección
-PRUEBAS de `Código.js` se corren a mano desde el editor (`clasp open` → elegir
+PRUEBAS de `Código.js` se corren a mano desde el editor (`clasp open-script` → elegir
 función → Run):
 
 - `probarAccesos()` — toca los tres recursos de `CONFIG` por separado y dice
@@ -341,7 +365,7 @@ función → Run):
   de tocar la sección LÓGICA.**
 - `probarExtraccion()` — extracción sobre una ficha real, sin generar nada.
 - `probarCompleto()` — punta a punta, genera el PDF.
-- `probarPuntaAPunta()` — **la más útil de las cuatro.** Punta a punta sin datos
+- `probarPuntaAPunta()` — **la más útil de todas.** Punta a punta sin datos
   de nadie y sin depender de la carpeta de salida: fabrica la ficha (un Doc con
   el texto de `FICHA_SINTETICA`, exportado a PDF), la procesa y genera la nota
   en una carpeta temporal propia que borra al terminar. Redirige
@@ -393,15 +417,25 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 - "Borrar" en Drive es mandar a la papelera: la ficha que borra
   `subirYGenerar()` queda 30 días en la papelera de la cuenta que ejecuta la
   app. Conviene vaciarla cada tanto.
+- **El PDF generado se comparte solo con el alumno que lo pidió.** La app corre
+  como quien deployó, así que el PDF nace sin acceso para el alumno.
+  `generarNota()` le da Lector con `addViewer(Session.getActiveUser().getEmail())`.
+  Si ese mail viene vacío, cae en `DOMAIN_WITH_LINK` + `VIEW`: cualquier cuenta
+  `@ucc.edu.ar` con el link ve la constancia, con DNI. Ver Pendientes.
 
 ---
 
 ## Pendientes
 
-- Acceso al Workspace institucional de la UCC (Agus desarrolla desde su cuenta
-  personal). Cuando llegue: copiar los tres archivos, recrear planilla y
-  plantilla allá, actualizar `CONFIG`, deployar con `access: DOMAIN`.
-- Con el Workspace institucional se puede usar
-  `Session.getActiveUser().getEmail()` para identificar al alumno
-  automáticamente y sacar pasos manuales del formulario.
+- **Terminar el traspaso a `grado.fi@ucc.edu.ar`** (guion en `TRASPASO.md`).
+  Proyecto y carpeta `SALIDAS` ya son de `grado.fi`. Falta:
+  - Transferir la planilla y la plantilla, que siguen siendo de `2400520`.
+  - Confirmar quién hizo el último deploy ("Ejecutar como" en *Administrar
+    implementaciones*). Si es `2400520`, la app corre con los permisos de Agus y
+    muere con su cuenta: redeployar como `grado.fi`.
+- **Fallback `DOMAIN_WITH_LINK` en `generarNota()`.** Decidir si se reemplaza
+  por un `throw`: hoy, si no hay mail del alumno, la constancia queda visible
+  para todo el dominio con el link.
+- `Session.getActiveUser().getEmail()` ya se usa para compartir el PDF. Se
+  podría usar también para sacar pasos manuales del formulario.
 - Fila del calendario 2027 cuando se defina.

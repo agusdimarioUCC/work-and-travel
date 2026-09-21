@@ -4,38 +4,38 @@ Sacar el proyecto de `2400520@ucc.edu.ar` (cuenta de alumno de Agus) y dejarlo a
 nombre de `grado.fi@ucc.edu.ar` — Secretaría de Grado. Confirmado con Aaron.
 Una hora, presencial.
 
-> **Estado al 25/08/2026.** El código funciona: `probarPuntaAPunta()` generó
-> una constancia completa y correcta (5 años, 62 materias, 3° año, las dos
-> fechas del calendario, sin avisos), ejercitando conversión del PDF, parseo,
-> las dos hojas, la plantilla y el export.
+> **Estado al 21/09/2026 — el traspaso está a medias.** El 08/09 se recreó
+> todo en un proyecto nuevo:
 >
-> **Lo único que falla es escribir en la carpeta de salida.** `probarAccesos()`
-> da OK en todas las lecturas y FALLA en la escritura: `Access denied: DriveApp`.
-> El alumno ve ese mensaje.
+> | Recurso | ID | Dueño |
+> |---|---|---|
+> | Proyecto "Work & Travel" | `1prkWjxzyIxLZc2nzymPBYZ4jYbpMmYwuYtASUl4Sj97KhPUSbF6jr1wl` | `grado.fi` ✓ |
+> | Carpeta `SALIDAS` | `1xYDMz4UdAeQWr8X7Opaqg8Ey3Skf3mI5` | `grado.fi` ✓ |
+> | Planilla "Planes" | `1U0IEygsMU0hsesUHbmhNiMD6fSwaPE4fS7lqmaBPJ04` | **`2400520`** ✗ |
+> | Plantilla "A quien corresponda_" | `1jhI-qM0_Yd1HdbCA9W0QlbYjbX4Llap8-Q-SA3hgbb0` | **`2400520`** ✗ |
 >
-> **La causa, verificada:** `entro como NONE, dueño grado.fi@ucc.edu.ar`.
-> `2400520@ucc.edu.ar` no tiene ningún permiso propio sobre esa carpeta — la ve
-> por herencia del dominio, y por eso lee pero no escribe.
+> Faltan dos cosas: **transferir la planilla y la plantilla** (paso 2) y
+> **que el último deploy lo haga `grado.fi`** (paso 3). Mientras el deploy
+> sea de `2400520`, la app corre con los permisos de Agus y deja de andar el
+> día que se dé de baja su cuenta.
 >
-> **Se destraba con un permiso de Editor** para la cuenta que ejecuta, otorgado
-> por `grado.fi@ucc.edu.ar`, que es la dueña. O, mejor, se vuelve innecesario en
-> cuanto la app se ejecute *como* esa cuenta: **el traspaso arregla este bug por
-> construcción**, porque el dueño de los archivos y el que ejecuta pasan a ser
-> la misma cuenta y no queda nada que sincronizar.
+> El proyecto viejo (`1pfOnVno…`), su deployment (`AKfycbxWChmSX…`) y sus
+> recursos ya no existen o no se usan.
 
 ## Antes de ir
 
-El código ya está limpio en el repo. Falta subirlo:
+No hay código para subir: el repo, el editor y el deployment en uso (versión 9)
+tienen el mismo código al 21/09. Solo verificar:
 
 ```bash
-clasp push -f       # tiene que decir "Pushed N files"
 clasp open-script   # correr probarLogica() -> Logger dice OK
-                    # correr probarAccesos() -> vuelve a pedir permisos, es esperado
-clasp deploy -i AKfycbxWChmSXMO17PWs_9PMdq7SUEclWTUPLXRcMcIgekOdo9XdLKWWgbUjUKdcJcuBK64_bA
+                    # correr probarAccesos() -> todo OK
 ```
 
-Ese es el deployment repartido. **Nunca `clasp deploy` a secas**: crea otro con
-otra URL.
+El deployment repartido es
+`AKfycbyynGlujVlmAfv6WFTl51fhCK7huZEuxcq3jNwC486hc7LrGMzpfiDbTu2zoJTNsXgJhg`.
+Si hay que actualizarlo: `clasp deploy -i <ese ID>`. **Nunca `clasp deploy` a
+secas**: crea otro con otra URL.
 
 Llevá tu notebook, una ficha PDF para probar, y el repo en un zip.
 
@@ -51,18 +51,16 @@ Dejá esa ventana abierta: es la sesión de `grado.fi`. Lo tuyo, en tu notebook.
 desplegable ofrece "Transferir propiedad".
 
 Vos, como `2400520`, transferís a `grado.fi`:
-- El proyecto de Apps Script (`1pfOnVnoraqCmTbEAo5XMzYK_UpIicmexLNcdDPDtXR4pAgVndV-mWDr9`)
-- La planilla (`1W0EyQSpzkPm9oFQaB7bM7mY9PBFeElqTN5kFbXlMNrc`)
-- La plantilla (`1bHVdGrIONdfZ_FMpG4jCDdOqWYZVr6eT7TOg06vW9E8`)
-- Los PDF ya generados en la carpeta de salida: los creó la app corriendo como
-  vos, así que son tuyos. Si son de prueba, borralos.
+- La planilla "Planes" (`1U0IEygsMU0hsesUHbmhNiMD6fSwaPE4fS7lqmaBPJ04`)
+- La plantilla "A quien corresponda_" (`1jhI-qM0_Yd1HdbCA9W0QlbYjbX4Llap8-Q-SA3hgbb0`)
+- Los PDF ya generados en `SALIDAS`: si la app corrió como vos, son tuyos.
+  Si son de prueba, borralos.
 
-**La carpeta de salida** (`1xpY367mDJiUwtecAr_nJtmRTJILrDOub`) **no se toca**:
-ya es de `grado.fi`. Es el único de los cuatro recursos que no hay que mover.
+**El proyecto y la carpeta `SALIDAS` no se tocan**: ya son de `grado.fi`.
 
 Como `grado.fi`: aceptar las transferencias si llega el pedido por mail (dentro
 del mismo dominio a veces son inmediatas) y verificar en Detalles → Propietario
-que los tres digan `grado.fi`.
+que los dos digan `grado.fi`. Transferir no cambia el ID: `CONFIG` queda igual.
 
 **3. Autorizar y redeployar, como `grado.fi`.** Esto es lo que hace que la app
 deje de correr con tu cuenta. Transferir los archivos **no** alcanza.
@@ -76,15 +74,16 @@ deje de correr con tu cuenta. Transferir los archivos **no** alcanza.
   implementación": eso crea otra URL.
 - Verificar ahí mismo que **"Ejecutar como"** diga `grado.fi@ucc.edu.ar`. Si dice
   otra cosa, no quedó.
-- Archivar el deployment `@HEAD` (`AKfycbzVqNCz7Om3GObi...`), que no se usa.
+- Archivar el deployment `@HEAD` (`AKfycbxVT3Rq...`), que no se usa.
 
 **4. Probar, desde tu notebook con tu cuenta de alumno.** No desde `grado.fi`:
 el caso real es un alumno usando una app que corre como la Secretaría. Subir la
 ficha, generar la nota, y confirmar que el PDF quedó con `grado.fi` como
 propietaria.
 
-**5. Dejar el zip del repo y `CLAUDE.md` en la carpeta del proyecto.** Es la
-única copia: el repo no tiene remote.
+**5. Dejar el zip del repo y `CLAUDE.md` en la carpeta del proyecto.** Aunque
+el repo está en GitHub (`agusdimarioUCC/work-and-travel`), es de tu cuenta
+personal: que la Secretaría tenga su propia copia.
 
 **6. Desconectarte.** Solo si el paso 4 salió bien.
 
