@@ -251,6 +251,20 @@ function pdfATexto(idArchivoPdf) {
  * En la plantilla los campos van así: {{NOMBRE}}, {{DNI}}, {{CARRERA}}, etc.
  */
 function generarNota(datos) {
+  // La web app corre como el usuario del deployment, no como el alumno, y el PDF
+  // nace con los permisos de la carpeta SALIDAS. Le damos acceso de lectura SOLO
+  // al alumno que generó esta constancia: así puede abrir el link que le
+  // devolvemos y ningún alumno ve la ficha de otro.
+  // Se chequea antes de crear nada: si falla, no queda ningún archivo con DNI.
+  const alumno = Session.getActiveUser().getEmail();
+  if (!alumno) {
+    throw new Error(
+      'No se pudo identificar tu cuenta, así que no se puede compartirte la ' +
+      'constancia. Entrá con tu cuenta @ucc.edu.ar y volvé a intentar. Si sigue ' +
+      'pasando, avisale a la Secretaría de Grado.'
+    );
+  }
+
   const nombreArchivo = 'Nota Institucional - ' + datos.NOMBRE + ' - ' + datos.DNI;
   const carpeta = DriveApp.getFolderById(CONFIG.ID_CARPETA_SALIDA);
 
@@ -272,18 +286,7 @@ function generarNota(datos) {
   // Se vuelve a pedir el archivo por ID para que el export vea los cambios ya guardados.
   const pdfBlob = DriveApp.getFileById(copia.getId()).getAs('application/pdf');
   const pdf = carpeta.createFile(pdfBlob).setName(nombreArchivo + '.pdf');
-
-  // La web app corre como el usuario del deployment, no como el alumno, y el PDF
-  // nace con los permisos de la carpeta SALIDAS. Le damos acceso de lectura SOLO
-  // al alumno que generó esta constancia: así puede abrir el link que le
-  // devolvemos y ningún alumno ve la ficha de otro.
-  const alumno = Session.getActiveUser().getEmail();
-  if (alumno) {
-    pdf.addViewer(alumno);
-  } else {
-    // Sin identidad del alumno (raro, mismo dominio): al menos que sirva el link.
-    pdf.setSharing(DriveApp.Access.DOMAIN_WITH_LINK, DriveApp.Permission.VIEW);
-  }
+  pdf.addViewer(alumno);
 
   copia.setTrashed(true);                                  // queda solo el PDF
   return pdf;

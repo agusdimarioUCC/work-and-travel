@@ -427,8 +427,9 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 - **El PDF generado se comparte solo con el alumno que lo pidió.** La app corre
   como quien deployó, así que el PDF nace sin acceso para el alumno.
   `generarNota()` le da Lector con `addViewer(Session.getActiveUser().getEmail())`.
-  Si ese mail viene vacío, cae en `DOMAIN_WITH_LINK` + `VIEW`: cualquier cuenta
-  `@ucc.edu.ar` con el link ve la constancia, con DNI. Ver Pendientes.
+  Si ese mail viene vacío, **tira error antes de crear ningún archivo**. No
+  hay fallback a compartir por link: antes había `DOMAIN_WITH_LINK`, y dejaba
+  la constancia con DNI visible para todo el dominio. No lo vuelvas a poner.
 
 ---
 
@@ -440,9 +441,6 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
   - Confirmar quién hizo el último deploy ("Ejecutar como" en *Administrar
     implementaciones*). Si es `2400520`, la app corre con los permisos de Agus y
     muere con su cuenta: redeployar como `grado.fi`.
-- **Fallback `DOMAIN_WITH_LINK` en `generarNota()`.** Decidir si se reemplaza
-  por un `throw`: hoy, si no hay mail del alumno, la constancia queda visible
-  para todo el dominio con el link.
 - `Session.getActiveUser().getEmail()` ya se usa para compartir el PDF. Se
   podría usar también para sacar pasos manuales del formulario.
 - Fila del calendario 2027 cuando se defina.
