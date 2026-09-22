@@ -1,0 +1,9 @@
+**/**
+!**/appsscript.json
+!**/*.gs
+!**/*.js
+!**/*.ts
+!**/*.html
+.git/**
+node_modules/**
+graphify-out/**
