@@ -110,17 +110,25 @@
   <h1>Constancia de Alumno Regular</h1>
   <p class="bajada">Para trámites de Work and Travel &middot; Facultad de Ingeniería, UCC</p>
 
-  <div class="zona" id="zona">
+  <div class="zona" id="zonaFicha">
     <strong>Subí tu Ficha del Alumno</strong>
     <small>Arrastrala acá o hacé click para elegirla &middot; PDF</small>
-    <input type="file" id="archivo" accept="application/pdf,.pdf">
+    <input type="file" id="archivoFicha" accept="application/pdf,.pdf">
   </div>
 
-  <div class="elegido" id="elegido"></div>
+  <div class="elegido" id="elegidoFicha"></div>
+
+  <div class="zona" id="zonaConsentimiento" style="margin-top:16px">
+    <strong>Subí tu consentimiento firmado</strong>
+    <small>Firmado digitalmente o escaneado/fotografiado &middot; PDF, JPG o PNG</small>
+    <input type="file" id="archivoConsentimiento" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png">
+  </div>
+
+  <div class="elegido" id="elegidoConsentimiento"></div>
 
   <button id="generar" disabled>Generar constancia</button>
 
-  <div class="estado" id="estado">Procesando la ficha&hellip; puede tardar unos segundos.</div>
+  <div class="estado" id="estado">Procesando&hellip; puede tardar unos segundos.</div>
 
   <div class="resultado" id="resultado">
     <h2>Constancia generada</h2>
@@ -138,58 +146,76 @@
 
   <div class="error" id="error"></div>
 
-  <p class="pie">La ficha que subís se usa solo para generar la constancia y se elimina enseguida.</p>
+  <p class="pie">La ficha que subís se usa solo para generar la constancia y se elimina enseguida. El consentimiento firmado se conserva como prueba de aceptación.</p>
 </div>
 
 <script>
-  const zona = document.getElementById('archivo');
-  const caja = document.getElementById('zona');
-  const elegido = document.getElementById('elegido');
   const boton = document.getElementById('generar');
   const estado = document.getElementById('estado');
   const resultado = document.getElementById('resultado');
   const error = document.getElementById('error');
 
-  let archivo = null;
+  const archivos = { ficha: null, consentimiento: null };
 
-  caja.addEventListener('click', () => zona.click());
-  zona.addEventListener('change', e => tomar(e.target.files[0]));
+  function armarZona(clave, idInput, idCaja, idElegido, extensionesValidas, mensajeError) {
+    const input = document.getElementById(idInput);
+    const caja = document.getElementById(idCaja);
+    const elegido = document.getElementById(idElegido);
 
-  ['dragenter', 'dragover'].forEach(ev =>
-    caja.addEventListener(ev, e => { e.preventDefault(); caja.classList.add('encima'); }));
-  ['dragleave', 'drop'].forEach(ev =>
-    caja.addEventListener(ev, e => { e.preventDefault(); caja.classList.remove('encima'); }));
-  caja.addEventListener('drop', e => tomar(e.dataTransfer.files[0]));
+    const tomar = f => {
+      if (!f) return;
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (!extensionesValidas.includes(ext)) {
+        mostrarError(mensajeError);
+        return;
+      }
+      archivos[clave] = f;
+      elegido.textContent = f.name;
+      elegido.style.display = 'block';
+      boton.disabled = !(archivos.ficha && archivos.consentimiento);
+      ocultar();
+    };
 
-  function tomar(f) {
-    if (!f) return;
-    if (!/\.pdf$/i.test(f.name)) {
-      mostrarError('El archivo tiene que ser un PDF.');
-      return;
-    }
-    archivo = f;
-    elegido.textContent = f.name;
-    elegido.style.display = 'block';
-    boton.disabled = false;
-    ocultar();
+    caja.addEventListener('click', () => input.click());
+    input.addEventListener('change', e => tomar(e.target.files[0]));
+    ['dragenter', 'dragover'].forEach(ev =>
+      caja.addEventListener(ev, e => { e.preventDefault(); caja.classList.add('encima'); }));
+    ['dragleave', 'drop'].forEach(ev =>
+      caja.addEventListener(ev, e => { e.preventDefault(); caja.classList.remove('encima'); }));
+    caja.addEventListener('drop', e => tomar(e.dataTransfer.files[0]));
   }
 
-  boton.addEventListener('click', () => {
-    if (!archivo) return;
+  armarZona('ficha', 'archivoFicha', 'zonaFicha', 'elegidoFicha',
+    ['pdf'], 'La ficha tiene que ser un PDF.');
+  armarZona('consentimiento', 'archivoConsentimiento', 'zonaConsentimiento', 'elegidoConsentimiento',
+    ['pdf', 'jpg', 'jpeg', 'png'], 'El consentimiento tiene que ser un PDF o una imagen (jpg/png).');
+
+  function leerComoBase64(f) {
+    return new Promise((resolve, reject) => {
+      const lector = new FileReader();
+      lector.onload = () => resolve(lector.result.split(',')[1]);
+      lector.onerror = () => reject(new Error('No se pudo leer "' + f.name + '".'));
+      lector.readAsDataURL(f);
+    });
+  }
+
+  boton.addEventListener('click', async () => {
+    if (!archivos.ficha || !archivos.consentimiento) return;
     ocultar();
     boton.disabled = true;
     estado.style.display = 'block';
 
-    const lector = new FileReader();
-    lector.onload = () => {
-      const base64 = lector.result.split(',')[1];
+    try {
+      const [base64Ficha, base64Consentimiento] = await Promise.all(
+        [archivos.ficha, archivos.consentimiento].map(leerComoBase64)
+      );
       google.script.run
         .withSuccessHandler(responder)
         .withFailureHandler(e => mostrarError(e.message || String(e)))
-        .subirYGenerar(archivo.name, base64);
-    };
-    lector.onerror = () => mostrarError('No se pudo leer el archivo.');
-    lector.readAsDataURL(archivo);
+        .subirYGenerar(archivos.ficha.name, base64Ficha, archivos.consentimiento.name, base64Consentimiento);
+    } catch (e) {
+      mostrarError(e.message || String(e));
+    }
   });
 
   function responder(r) {
@@ -226,7 +252,7 @@
   function mostrarError(msg) {
     estado.style.display = 'none';
     resultado.style.display = 'none';
-    boton.disabled = !archivo;
+    boton.disabled = !(archivos.ficha && archivos.consentimiento);
     error.textContent = msg;
     error.style.display = 'block';
   }

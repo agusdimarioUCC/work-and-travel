@@ -648,8 +648,9 @@ const FICHA_SINTETICA = [
 /**
  * 4) Punta a punta sin datos de nadie y sin tocar la carpeta de salida.
  *
- * Fabrica la ficha (un Doc con el texto, exportado a PDF), la procesa y genera
- * la nota dentro de una carpeta temporal propia, que borra al terminar.
+ * Fabrica la ficha (un Doc con el texto, exportado a PDF) y un consentimiento
+ * sintético, y llama a subirYGenerar() -tal cual la web app-, dentro de una
+ * carpeta temporal propia que borra al terminar.
  *
  * Redirige CONFIG.ID_CARPETA_SALIDA solo durante esta ejecución: no cambia nada
  * en el proyecto ni en la web app deployada. Sirve para verificar el flujo
@@ -669,18 +670,24 @@ function probarPuntaAPunta() {
     doc.getBody().setText(FICHA_SINTETICA);
     doc.saveAndClose();
 
-    const pdfFicha = carpeta.createFile(
-      DriveApp.getFileById(idDocFicha).getAs('application/pdf')
-    ).setName('ficha-sintetica.pdf');
+    const base64Ficha = Utilities.base64Encode(
+      DriveApp.getFileById(idDocFicha).getAs('application/pdf').getBytes()
+    );
+    const base64Consentimiento = Utilities.base64Encode(
+      Utilities.newBlob('Acepto los términos.').getBytes()
+    );
 
-    const r = fichaANota(pdfFicha.getId());
+    const r = subirYGenerar('ficha-sintetica.pdf', base64Ficha, 'consentimiento-sintetico.pdf', base64Consentimiento);
+    if (!r.ok) throw new Error(r.error);
 
-    Logger.log('--- DATOS ---');
-    Logger.log(JSON.stringify(r.datos, null, 2));
-    Logger.log(r.avisos.length
-      ? '--- AVISOS ---\n' + r.avisos.join('\n')
-      : '--- SIN AVISOS ---');
-    Logger.log('OK punta a punta -> se generó "%s"', r.pdf.nombre);
+    Logger.log('--- RESULTADO ---');
+    Logger.log(JSON.stringify(r, null, 2));
+
+    const consentimientos = DriveApp.getFolderById(carpeta.getId()).getFoldersByName('Consentimientos');
+    Logger.log(consentimientos.hasNext()
+      ? 'OK -> se guardó el consentimiento en SALIDAS/Consentimientos'
+      : 'FALLA -> no se creó la subcarpeta Consentimientos');
+    Logger.log('OK punta a punta -> se generó "%s"', r.nombre);
 
   } finally {
     CONFIG.ID_CARPETA_SALIDA = original;

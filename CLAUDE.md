@@ -8,13 +8,17 @@ Google Apps Script. Genera la constancia de alumno regular que piden los
 alumnos de la Facultad de Ingeniería de la Universidad Católica de Córdoba
 para trámites de Work and Travel.
 
-**Flujo completo:** el alumno sube el PDF de su Ficha del Alumno en una web
-app → se extraen sus datos del PDF → se cruzan contra dos hojas de referencia
-→ sale la constancia en PDF y se le comparte al alumno.
+**Flujo completo:** el alumno sube el PDF de su Ficha del Alumno y su
+consentimiento firmado (digital o escaneado/fotografiado) en una web app → se
+extraen los datos de la ficha → se cruzan contra dos hojas de referencia →
+sale la constancia en PDF y se le comparte al alumno → el alumno la imprime y
+se la lleva a Aaron, que la firma en papel.
 
-**Duda abierta:** la idea original era que Aaron revisara y firmara cada
-constancia, pero hoy el alumno recibe el link al PDF apenas se genera, sin
-firmar. Falta confirmar con Aaron cuál es el flujo real.
+**Confirmado con Aaron (2026-09-21):** la firma es en papel, fuera de la app.
+El PDF que genera la web app **no** se firma digitalmente ni Aaron lo revisa
+antes de que el alumno lo reciba — el alumno recibe el link apenas se genera,
+tal como funciona hoy. No agregues un paso de revisión/firma digital: no
+hace falta.
 
 **Volumen:** menos de 100 constancias por temporada. Cualquier propuesta de
 colas de trabajo, reintentos, dashboards de métricas o sistemas de
@@ -50,9 +54,18 @@ Script, decila concretamente en vez de sugerir un rewrite.
 **Flujo de llamadas:** `Index.html` → `google.script.run.subirYGenerar()`
 (`WebApp.js`) → guarda la ficha en la carpeta de salida → `fichaANota()` →
 `procesarFicha()` (`pdfATexto` → `extraerFicha` → `leerPlan` / `leerCalendario`
-→ `armarDatosNota`) → `aprobarYGenerar()` → `generarNota()` → borra la ficha en
-el `finally`. `procesarFicha` y `aprobarYGenerar` están separadas para poder
+→ `armarDatosNota`) → `aprobarYGenerar()` → `generarNota()` → guarda el
+consentimiento firmado en `SALIDAS/Consentimientos` → borra la ficha en el
+`finally`. `procesarFicha` y `aprobarYGenerar` están separadas para poder
 mostrar los datos antes de generar, aunque la web app hoy hace todo de una.
+
+**Consentimiento firmado:** desde 2026-09, `subirYGenerar` también recibe el
+consentimiento firmado del alumno (PDF o foto/escaneo en jpg/png). A
+diferencia de la ficha, **se conserva** (es la prueba de que el alumno
+aceptó): queda en `SALIDAS/Consentimientos`, subcarpeta que crea sola
+`carpetaConsentimientos()` (`WebApp.js`) la primera vez que hace falta — no
+tiene ID propio en `CONFIG`. El consentimiento no se parsea ni se valida su
+contenido, solo se guarda; si `fichaANota()` falla, no se guarda.
 
 `pdfATexto()` usa el **servicio avanzado de Drive** (`Drive.Files.create`),
 habilitado en `appsscript.json` (`enabledAdvancedServices`, v3). No es lo mismo
@@ -305,9 +318,10 @@ función → Run):
   paso para una cuenta nueva (dispara el consentimiento de Google).
 - `probarLogica()` — lógica pura con datos inventados, instantánea. **Correr
   siempre después de tocar LÓGICA.**
-- `probarPuntaAPunta()` — **la más útil.** Punta a punta con una ficha
-  fabricada a partir de `FICHA_SINTETICA`, en una carpeta temporal que borra
-  al terminar.
+- `probarPuntaAPunta()` — **la más útil.** Llama a `subirYGenerar()` (la
+  función real de la web app) con una ficha fabricada a partir de
+  `FICHA_SINTETICA` y un consentimiento sintético, en una carpeta temporal
+  que borra al terminar.
 - `probarExtraccion()` / `probarCompleto()` — sobre una ficha real. Necesitan
   `ID_FICHA_PRUEBA`, que **va vacío en el repo a propósito** (DNI y
   domicilio): pegar el ID, correr y volver a vaciarlo.
@@ -341,6 +355,9 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 
 - `subirYGenerar()` borra la ficha subida apenas se procesa (ver el `finally`).
   **No cambies ese comportamiento sin que te lo pidan.**
+- El consentimiento firmado es la excepción a propósito: **se conserva** en
+  `SALIDAS/Consentimientos` en vez de borrarse, porque es la prueba de que el
+  alumno aceptó. No lo borres para "igualar" el tratamiento de la ficha.
 - No agregues logging que persista DNI, nombres completos o domicilios.
 - **No dejes datos de nadie hardcodeados**, ni siquiera para pruebas.
   `probarLogica()` usa un alumno inventado y `ID_FICHA_PRUEBA` va vacío.
