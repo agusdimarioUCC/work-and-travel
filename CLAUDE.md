@@ -101,8 +101,8 @@ de `Config.js`:
 
 | Recurso | Qué es | Permiso que necesita la cuenta que ejecuta | Dueño (al 2026-09-21) |
 |---|---|---|---|
-| `ID_PLANILLA` | Google Sheets "Planes", con las hojas `Planes` y `Calendario` | Lector | `grado.fi@ucc.edu.ar` |
-| `ID_PLANTILLA` | Google Doc "A quien corresponda_", con el texto y los placeholders | Lector | `grado.fi@ucc.edu.ar` |
+| `ID_PLANILLA` | Google Sheets "Base de Datos" (antes "Planes"), con las hojas `Planes` y `Calendario` | Lector | `grado.fi@ucc.edu.ar` |
+| `ID_PLANTILLA` | Google Doc "Plantilla Constancia" (antes "A quien corresponda_"), con el texto y los placeholders | Lector | `grado.fi@ucc.edu.ar` |
 | `ID_CARPETA_SALIDA` | Carpeta `SALIDAS`, donde se dejan los PDF generados | **Editor** | `grado.fi@ucc.edu.ar` |
 
 El proyecto de Apps Script también es de `grado.fi@ucc.edu.ar` (cuenta de área
