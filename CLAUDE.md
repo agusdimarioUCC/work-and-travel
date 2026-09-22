@@ -292,8 +292,9 @@ si se deployó con clasp, o la logueada en el editor si se deployó desde ahí.
 Los errores de permisos se chequean contra esa cuenta.
 
 Deployment en uso: `AKfycbyynGlujVlmAfv6WFTl51fhCK7huZEuxcq3jNwC486hc7LrGMzpfiDbTu2zoJTNsXgJhg`
-(versión 13 al 2026-09-21, incluye `blindarPlanilla()`, el consentimiento
-firmado y el split de `Codigo.js` en archivos por capa). El `@HEAD`
+(versión 14 al 2026-09-21, incluye `blindarPlanilla()`, el consentimiento
+firmado, el split de `Codigo.js` en archivos por capa y el link de
+descarga del consentimiento). El `@HEAD`
 (`AKfycbxVT3Rq…`) no se toca.
 
 ### `oauthScopes`: no están, y es a propósito
