@@ -48,16 +48,31 @@ Script, decila concretamente en vez de sugerir un rewrite.
 
 ## Estructura
 
-`Codigo.js` tiene toda la lógica; `WebApp.js` es solo el borde HTTP
-(`doGet` y `subirYGenerar`); `Index.html` es la pantalla de subida.
+Un archivo `.js` por responsabilidad (Apps Script no tiene módulos: todos
+se mezclan en un mismo scope global al ejecutar, así que la separación es
+solo de organización, no de aislamiento):
+
+| Archivo | Responsabilidad |
+|---|---|
+| `Config.js` | Overview del proyecto + objeto `CONFIG` |
+| `Logica.js` | Funciones puras: parseo de la ficha, cálculo de año que cursa, armado de datos de la nota. No llama a servicios de Google. |
+| `Datos.js` | Lectura de las hojas `Planes` y `Calendario` (Sheets) |
+| `PdfATexto.js` | Conversión del PDF de la ficha a texto (Drive) |
+| `Generacion.js` | Copia la plantilla y genera el PDF de la nota (Docs) |
+| `Orquestacion.js` | Casos de uso: `procesarFicha`, `aprobarYGenerar`, `fichaANota` |
+| `Mantenimiento.js` | `blindarPlanilla()`, se corre a mano desde el editor |
+| `Pruebas.js` | Todas las funciones `probar*` y los datos de prueba |
+| `WebApp.js` | Borde HTTP: `doGet` y `subirYGenerar` |
+| `Index.html` | Pantalla de subida |
 
 **Flujo de llamadas:** `Index.html` → `google.script.run.subirYGenerar()`
-(`WebApp.js`) → guarda la ficha en la carpeta de salida → `fichaANota()` →
-`procesarFicha()` (`pdfATexto` → `extraerFicha` → `leerPlan` / `leerCalendario`
-→ `armarDatosNota`) → `aprobarYGenerar()` → `generarNota()` → guarda el
-consentimiento firmado en `SALIDAS/Consentimientos` → borra la ficha en el
-`finally`. `procesarFicha` y `aprobarYGenerar` están separadas para poder
-mostrar los datos antes de generar, aunque la web app hoy hace todo de una.
+(`WebApp.js`) → guarda la ficha en la carpeta de salida → `fichaANota()`
+(`Orquestacion.js`) → `procesarFicha()` (`pdfATexto` → `extraerFicha` →
+`leerPlan` / `leerCalendario` → `armarDatosNota`) → `aprobarYGenerar()` →
+`generarNota()` (`Generacion.js`) → guarda el consentimiento firmado en
+`SALIDAS/Consentimientos` → borra la ficha en el `finally`. `procesarFicha`
+y `aprobarYGenerar` están separadas para poder mostrar los datos antes de
+generar, aunque la web app hoy hace todo de una.
 
 **Consentimiento firmado:** desde 2026-09, `subirYGenerar` también recibe el
 consentimiento firmado del alumno (PDF o foto/escaneo en jpg/png). A
@@ -71,21 +86,18 @@ contenido, solo se guarda; si `fichaANota()` falla, no se guarda.
 habilitado en `appsscript.json` (`enabledAdvancedServices`, v3). No es lo mismo
 que `DriveApp`: si se saca del manifest, la conversión PDF→Doc deja de andar.
 
-`Codigo.js` está dividido en secciones con separadores de comentario:
-**CONFIG · LÓGICA · DATOS · PDF→TEXTO · GENERACIÓN · ORQUESTACIÓN · MANTENIMIENTO · PRUEBAS**.
-
-Las funciones de **LÓGICA** son puras a propósito: no llaman a
+Las funciones de **`Logica.js`** son puras a propósito: no llaman a
 `DriveApp`/`SpreadsheetApp`/`DocumentApp`. Eso permite testearlas sin red y
 portarlas si algún día el proyecto se absorbe en otro sistema. **Mantené esa
 separación** — no metas una llamada a un servicio de Google dentro de una
-función de esa sección.
+función de ese archivo.
 
 ---
 
 ## Recursos externos al repo
 
-No están en Git ni los maneja clasp. Sus IDs viven en `CONFIG` al tope de
-`Codigo.js`:
+No están en Git ni los maneja clasp. Sus IDs viven en el objeto `CONFIG`
+de `Config.js`:
 
 | Recurso | Qué es | Permiso que necesita la cuenta que ejecuta | Dueño (al 2026-09-21) |
 |---|---|---|---|
@@ -130,7 +142,7 @@ código no explota: deja las fechas vacías y emite un aviso.
   (`ubicarColumnas`), nunca por posición, y `validarPlan` exige enteros
   positivos. Si falta una columna o un valor no sirve, tira error: antes una
   celda con texto terminaba como "NaN años" en la nota, sin aviso.
-- **En la planilla:** `blindarPlanilla()` (sección MANTENIMIENTO) protege los
+- **En la planilla:** `blindarPlanilla()` (en `Mantenimiento.js`) protege los
   encabezados con advertencia, pone validación por columna y deja `clave` en
   formato texto. Se corre a mano desde el editor, y otra vez si se recrea la
   planilla. Al final loguea las celdas ya cargadas que no cumplen.
@@ -270,7 +282,8 @@ si se deployó con clasp, o la logueada en el editor si se deployó desde ahí.
 Los errores de permisos se chequean contra esa cuenta.
 
 Deployment en uso: `AKfycbyynGlujVlmAfv6WFTl51fhCK7huZEuxcq3jNwC486hc7LrGMzpfiDbTu2zoJTNsXgJhg`
-(versión 10 al 2026-09-21). El `@HEAD` (`AKfycbxVT3Rq…`) no se toca.
+(versión 12 al 2026-09-21, incluye `blindarPlanilla()` y el consentimiento
+firmado). El `@HEAD` (`AKfycbxVT3Rq…`) no se toca.
 
 ### `oauthScopes`: no están, y es a propósito
 
@@ -309,9 +322,8 @@ todo OK con permiso de Lector y manda a buscar el problema donde no está.
 
 No hay runner de CLI (Apps Script no tiene), y **`clasp run <función>` no
 sirve como reemplazo**: tira `Error code NOT_FOUND` porque el proyecto no
-está vinculado a un GCP estándar. Las funciones de la sección
-PRUEBAS de `Codigo.js` se corren a mano desde el editor (`clasp open-script` → elegir
-función → Run):
+está vinculado a un GCP estándar. Las funciones de `Pruebas.js` se corren a
+mano desde el editor (`clasp open-script` → elegir función → Run):
 
 - `probarAccesos()` — toca los tres recursos de `CONFIG` y dice cuál falla,
   con dueño y rol. **Primero ante cualquier error de permisos**, y el primer

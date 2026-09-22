@@ -18,17 +18,26 @@ Antes de tocar algo, leer:
 ## Estructura
 
 ```
-Codigo.js       Toda la lógica de negocio, dividida en secciones:
-                CONFIG · LÓGICA · DATOS · PDF→TEXTO · GENERACIÓN ·
-                ORQUESTACIÓN · MANTENIMIENTO · PRUEBAS
-WebApp.js       doGet() + el endpoint subirYGenerar(). Solo el borde HTTP/UI.
-Index.html      Pantalla de subida.
-appsscript.json Manifest de Apps Script.
-.clasp.json     scriptId y configuración de clasp.
+Config.js         Overview del proyecto + objeto CONFIG.
+Logica.js         Funciones puras: parseo de la ficha, cálculos, armado de datos.
+Datos.js          Lectura de las hojas Planes y Calendario (Sheets).
+PdfATexto.js      Conversión del PDF de la ficha a texto (Drive).
+Generacion.js     Genera el PDF de la nota a partir de la plantilla (Docs).
+Orquestacion.js   Casos de uso: procesarFicha, aprobarYGenerar, fichaANota.
+Mantenimiento.js  blindarPlanilla(), se corre a mano desde el editor.
+Pruebas.js        Funciones probar* y datos de prueba.
+WebApp.js         doGet() + el endpoint subirYGenerar(). Solo el borde HTTP/UI.
+Index.html        Pantalla de subida.
+appsscript.json   Manifest de Apps Script.
+.clasp.json       scriptId y configuración de clasp.
 ```
 
+Apps Script no tiene módulos: todos los `.js` se mezclan en un mismo scope
+global al ejecutar, así que esta separación es de organización, no de
+aislamiento.
+
 Los recursos externos (planilla, plantilla, carpeta de salida) no viven en
-este repo — sus IDs están en `CONFIG`, al tope de `Codigo.js`. Detalle en
+este repo — sus IDs están en el objeto `CONFIG` de `Config.js`. Detalle en
 `CLAUDE.md`.
 
 ## Deploy
@@ -46,8 +55,8 @@ trampa documentada ahí (versión de `clasp`, `oauthScopes`, `executeAs`).
 
 ## Pruebas
 
-No hay runner de CLI. Las funciones de la sección `PRUEBAS` de `Codigo.js` se
-corren a mano desde el editor de Apps Script (`clasp open-script`):
+No hay runner de CLI. Las funciones de `Pruebas.js` se corren a mano desde
+el editor de Apps Script (`clasp open-script`):
 
 - `probarAccesos()` — primero ante cualquier error de permisos.
 - `probarLogica()` — lógica pura, instantánea, sin tocar Drive ni Sheets.
