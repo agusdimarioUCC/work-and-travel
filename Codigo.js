@@ -385,10 +385,13 @@ function blindarPlanilla() {
     SpreadsheetApp.newDataValidation().requireFormulaSatisfied(formula)
       .setAllowInvalid(false).setHelpText(ayuda).build());
   // Condiciones (sin el =AND) de "entero entre min y max" para la celda de la fila 2.
+  // Separadas por ";": la planilla está en locale es_ES, donde "," no separa
+  // argumentos de fórmula (es el separador decimal). Con "," Sheets rechaza
+  // la regla entera, incluso una tan trivial como =AND(TRUE,TRUE).
   const entero = (i, min, max) => {
     const c = letra(i) + '2';
-    return 'ISNUMBER(' + c + '),' + c + '=INT(' + c + '),' +
-      c + '>=' + min + ',' + c + '<=' + max;
+    return 'ISNUMBER(' + c + ');' + c + '=INT(' + c + ');' +
+      c + '>=' + min + ';' + c + '<=' + max;
   };
   const protegerEncabezados = hoja => {
     hoja.getProtections(SpreadsheetApp.ProtectionType.RANGE)
@@ -409,8 +412,8 @@ function blindarPlanilla() {
   protegerEncabezados(planes);
   columna(planes, p.clave).setNumberFormat('@');
   validar(planes, p.clave,
-    '=AND(REGEXMATCH(TO_TEXT(' + k + '2),"^\\d{2}-\\d{4}$"),' +
-    'SUMPRODUCT(--($' + k + '$2:$' + k + '=' + k + '2))=1)',
+    '=AND(REGEXMATCH(TO_TEXT(' + k + '2);"^\\d{2}-\\d{4}$");' +
+    'COUNTIF($' + k + '$2:$' + k + ';' + k + '2)=1)',
     'Código de carrera y plan, ej: 17-2023. No puede repetirse.');
   validar(planes, p.duracion_anios, '=AND(' + entero(p.duracion_anios, 1, 10) + ')',
     'Duración en años: número entero entre 1 y 10.');
@@ -449,8 +452,8 @@ function blindarPlanilla() {
 
   protegerEncabezados(calendario);
   validar(calendario, c.anio,
-    '=AND(' + entero(c.anio, 2020, 2100) + ',' +
-    'COUNTIF($' + a + '$2:$' + a + ',' + a + '2)=1)',
+    '=AND(' + entero(c.anio, 2020, 2100) + ';' +
+    'COUNTIF($' + a + '$2:$' + a + ';' + a + '2)=1)',
     'Año: número entero, una sola fila por año.');
   ['fin_clases', 'inicio_clases_siguiente'].forEach(n => columna(calendario, c[n])
     .setDataValidation(SpreadsheetApp.newDataValidation().requireDate()

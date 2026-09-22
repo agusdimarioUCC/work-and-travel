@@ -44,7 +44,7 @@ Script, decila concretamente en vez de sugerir un rewrite.
 
 ## Estructura
 
-`Código.js` tiene toda la lógica; `WebApp.js` es solo el borde HTTP
+`Codigo.js` tiene toda la lógica; `WebApp.js` es solo el borde HTTP
 (`doGet` y `subirYGenerar`); `Index.html` es la pantalla de subida.
 
 **Flujo de llamadas:** `Index.html` → `google.script.run.subirYGenerar()`
@@ -58,7 +58,7 @@ mostrar los datos antes de generar, aunque la web app hoy hace todo de una.
 habilitado en `appsscript.json` (`enabledAdvancedServices`, v3). No es lo mismo
 que `DriveApp`: si se saca del manifest, la conversión PDF→Doc deja de andar.
 
-`Código.js` está dividido en secciones con separadores de comentario:
+`Codigo.js` está dividido en secciones con separadores de comentario:
 **CONFIG · LÓGICA · DATOS · PDF→TEXTO · GENERACIÓN · ORQUESTACIÓN · MANTENIMIENTO · PRUEBAS**.
 
 Las funciones de **LÓGICA** son puras a propósito: no llaman a
@@ -72,7 +72,7 @@ función de esa sección.
 ## Recursos externos al repo
 
 No están en Git ni los maneja clasp. Sus IDs viven en `CONFIG` al tope de
-`Código.js`:
+`Codigo.js`:
 
 | Recurso | Qué es | Permiso que necesita la cuenta que ejecuta | Dueño (al 2026-09-21) |
 |---|---|---|---|
@@ -297,7 +297,7 @@ todo OK con permiso de Lector y manda a buscar el problema donde no está.
 No hay runner de CLI (Apps Script no tiene), y **`clasp run <función>` no
 sirve como reemplazo**: tira `Error code NOT_FOUND` porque el proyecto no
 está vinculado a un GCP estándar. Las funciones de la sección
-PRUEBAS de `Código.js` se corren a mano desde el editor (`clasp open-script` → elegir
+PRUEBAS de `Codigo.js` se corren a mano desde el editor (`clasp open-script` → elegir
 función → Run):
 
 - `probarAccesos()` — toca los tres recursos de `CONFIG` y dice cuál falla,
@@ -360,13 +360,18 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 
 ## Pendientes
 
-- **`blindarPlanilla()` y la validación por nombre de columna están en el
-  editor (pusheadas) pero sin correr contra la planilla real.** Falta, desde
-  `clasp open-script`: `probarLogica()` → `probarPuntaAPunta()` →
-  `blindarPlanilla()`, revisar el log de celdas que no cumplen, y deployar
-  (`clasp deploy -i AKfycbyynGlu...`) si todo da bien. `clasp run` no sirve
-  para esto (ver más abajo). Hasta entonces la planilla real sigue sin
-  encabezados protegidos ni validación de datos.
+- **`blindarPlanilla()` ya corrió contra la planilla real y quedó blindada**
+  (encabezados protegidos, validación por columna). Las fórmulas de
+  validación usan `;` como separador de argumentos, no `,`: la planilla está
+  en locale `es_ES`, donde `,` es el separador decimal y Sheets rechaza la
+  regla entera (hasta `=AND(TRUE,TRUE)` fallaba con `,`). No vuelvas a poner
+  `,` en una `requireFormulaSatisfied()` de este archivo.
+  Falta: `blindarPlanilla()` encontró 2 celdas ya cargadas que no cumplen la
+  validación de fecha — `Calendario`, fila 2, `fin_clases` e
+  `inicio_clases_siguiente` están como texto, no como fecha. Hay que
+  reescribirlas a mano en la hoja y volver a correr `blindarPlanilla()` para
+  confirmar que el log queda limpio. Recién ahí deployar
+  (`clasp deploy -i AKfycbyynGlu...`).
 - Sin verificar con qué cuenta corre la web app ("Ejecutar como" en
   *Administrar implementaciones*). No es urgente.
 - `Session.getActiveUser().getEmail()` ya se usa para compartir el PDF. Se

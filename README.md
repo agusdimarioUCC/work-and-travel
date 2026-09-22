@@ -18,7 +18,7 @@ Antes de tocar algo, leer:
 ## Estructura
 
 ```
-Código.js       Toda la lógica de negocio, dividida en secciones:
+Codigo.js       Toda la lógica de negocio, dividida en secciones:
                 CONFIG · LÓGICA · DATOS · PDF→TEXTO · GENERACIÓN ·
                 ORQUESTACIÓN · MANTENIMIENTO · PRUEBAS
 WebApp.js       doGet() + el endpoint subirYGenerar(). Solo el borde HTTP/UI.
@@ -28,7 +28,7 @@ appsscript.json Manifest de Apps Script.
 ```
 
 Los recursos externos (planilla, plantilla, carpeta de salida) no viven en
-este repo — sus IDs están en `CONFIG`, al tope de `Código.js`. Detalle en
+este repo — sus IDs están en `CONFIG`, al tope de `Codigo.js`. Detalle en
 `CLAUDE.md`.
 
 ## Deploy
@@ -46,7 +46,7 @@ trampa documentada ahí (versión de `clasp`, `oauthScopes`, `executeAs`).
 
 ## Pruebas
 
-No hay runner de CLI. Las funciones de la sección `PRUEBAS` de `Código.js` se
+No hay runner de CLI. Las funciones de la sección `PRUEBAS` de `Codigo.js` se
 corren a mano desde el editor de Apps Script (`clasp open-script`):
 
 - `probarAccesos()` — primero ante cualquier error de permisos.

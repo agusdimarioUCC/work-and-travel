@@ -1,8 +1,8 @@
 /**
  * NOTA INSTITUCIONAL - Interfaz web
  *
- * Archivo aparte de Código. Solo expone la web app y el endpoint de subida;
- * toda la lógica vive en Código.
+ * Archivo aparte de Codigo. Solo expone la web app y el endpoint de subida;
+ * toda la lógica vive en Codigo.
  */
 
 function doGet() {
