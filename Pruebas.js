@@ -70,7 +70,7 @@ function probarExtraccion() {
   const ficha = extraerFicha(pdfATexto(idFichaDePrueba()));
   Logger.log(JSON.stringify(ficha, null, 2));
   Logger.log('ingreso -> por tabla: %s | por ID: %s | coinciden: %s',
-    ficha.ingreso.porTabla, ficha.ingreso.porId, ficha.ingreso.confiable);
+    ficha.ingreso.porTabla, ficha.ingreso.porId, !ficha.ingreso.difiereDeTabla);
 }
 
 /**
@@ -93,10 +93,7 @@ function probarAccesos() {
  * Chequea los recursos de CONFIG uno por uno y devuelve una línea por cada
  * uno, en vez de cortar en el primer error.
  *
- * Se usa desde el editor (probarAccesos) y desde WebApp.js cuando algo falla.
- * Correrlo en los dos lados permite comparar contextos de ejecución: el
- * editor corre con tu sesión, la web app con el token del deployment, y no
- * siempre tienen los mismos permisos.
+ * Se usa desde el editor, vía probarAccesos().
  */
 function chequearAccesos() {
   const chequeos = [

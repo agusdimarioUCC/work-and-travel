@@ -25,25 +25,30 @@ function generarNota(datos) {
   const carpeta = DriveApp.getFolderById(CONFIG.ID_CARPETA_SALIDA);
 
   const copia = DriveApp.getFileById(CONFIG.ID_PLANTILLA).makeCopy(nombreArchivo, carpeta);
-  const doc = DocumentApp.openById(copia.getId());
 
-  const claves = Object.keys(datos).filter(k => k.charAt(0) !== '_');
-  const reemplazar = seccion => {
-    if (!seccion) return;
-    claves.forEach(k => seccion.replaceText('\\{\\{' + k + '\\}\\}', datos[k]));
-  };
+  // El finally borra la copia aunque algo falle: si no, queda un Doc editable con
+  // el DNI en SALIDAS, y cada reintento del alumno suma otro.
+  try {
+    const doc = DocumentApp.openById(copia.getId());
 
-  reemplazar(doc.getBody());
-  reemplazar(doc.getHeader());
-  reemplazar(doc.getFooter());
+    const claves = Object.keys(datos).filter(k => k.charAt(0) !== '_');
+    const reemplazar = seccion => {
+      if (!seccion) return;
+      claves.forEach(k => seccion.replaceText('\\{\\{' + k + '\\}\\}', datos[k]));
+    };
 
-  doc.saveAndClose();
+    reemplazar(doc.getBody());
+    reemplazar(doc.getHeader());
+    reemplazar(doc.getFooter());
 
-  // Se vuelve a pedir el archivo por ID para que el export vea los cambios ya guardados.
-  const pdfBlob = DriveApp.getFileById(copia.getId()).getAs('application/pdf');
-  const pdf = carpeta.createFile(pdfBlob).setName(nombreArchivo + '.pdf');
-  pdf.addViewer(alumno);
+    doc.saveAndClose();
 
-  copia.setTrashed(true);                                  // queda solo el PDF
-  return pdf;
+    // Se vuelve a pedir el archivo por ID para que el export vea los cambios ya guardados.
+    const pdfBlob = DriveApp.getFileById(copia.getId()).getAs('application/pdf');
+    const pdf = carpeta.createFile(pdfBlob).setName(nombreArchivo + '.pdf');
+    pdf.addViewer(alumno);
+    return pdf;
+  } finally {
+    copia.setTrashed(true);                                // queda solo el PDF
+  }
 }
