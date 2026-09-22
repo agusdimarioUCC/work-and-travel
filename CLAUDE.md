@@ -1,7 +1,3 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 # Nota Institucional - Work and Travel (UCC)
 
 Google Apps Script. Genera la constancia de alumno regular que piden los
@@ -74,13 +70,10 @@ solo de organización, no de aislamiento):
 y `aprobarYGenerar` están separadas para poder mostrar los datos antes de
 generar, aunque la web app hoy hace todo de una.
 
-**Consentimiento firmado:** desde 2026-09, `subirYGenerar` también recibe el
-consentimiento firmado del alumno (PDF o foto/escaneo en jpg/png). A
-diferencia de la ficha, **se conserva** (es la prueba de que el alumno
-aceptó): queda en `SALIDAS/Consentimientos`, subcarpeta que crea sola
-`carpetaConsentimientos()` (`WebApp.js`) la primera vez que hace falta — no
-tiene ID propio en `CONFIG`. El consentimiento no se parsea ni se valida su
-contenido, solo se guarda; si `fichaANota()` falla, no se guarda.
+**Consentimiento firmado** (PDF, jpg o png): no se parsea ni se valida, solo
+se guarda en `SALIDAS/Consentimientos`, que `carpetaConsentimientos()` crea
+sola (no tiene ID en `CONFIG`). Si `fichaANota()` falla, no se guarda. Por qué
+se conserva: ver Privacidad.
 
 `pdfATexto()` usa el **servicio avanzado de Drive** (`Drive.Files.create`),
 habilitado en `appsscript.json` (`enabledAdvancedServices`, v3). No es lo mismo
@@ -99,14 +92,14 @@ función de ese archivo.
 No están en Git ni los maneja clasp. Sus IDs viven en el objeto `CONFIG`
 de `Config.js`:
 
-| Recurso | Qué es | Permiso que necesita la cuenta que ejecuta | Dueño (al 2026-09-21) |
-|---|---|---|---|
-| `ID_PLANILLA` | Google Sheets "Base de Datos" (antes "Planes"), con las hojas `Planes` y `Calendario` | Lector | `grado.fi@ucc.edu.ar` |
-| `ID_PLANTILLA` | Google Doc "Plantilla Constancia" (antes "A quien corresponda_"), con el texto y los placeholders | Lector | `grado.fi@ucc.edu.ar` |
-| `ID_CARPETA_SALIDA` | Carpeta `SALIDAS`, donde se dejan los PDF generados | **Editor** | `grado.fi@ucc.edu.ar` |
+| Recurso | Qué es | Permiso que necesita la cuenta que ejecuta |
+|---|---|---|
+| `ID_PLANILLA` | Google Sheets "Base de Datos", con las hojas `Planes` y `Calendario` | Lector |
+| `ID_PLANTILLA` | Google Doc "Plantilla Constancia", con el texto y los placeholders | Lector |
+| `ID_CARPETA_SALIDA` | Carpeta `SALIDAS`, donde se dejan los PDF generados | **Editor** |
 
-El proyecto de Apps Script también es de `grado.fi@ucc.edu.ar` (cuenta de área
-de la Secretaría).
+Los tres, y el proyecto de Apps Script, son de `grado.fi@ucc.edu.ar` (cuenta
+de área de la Secretaría).
 
 **Modelo del consentimiento:** `Index.html` linkea un Google Doc con el texto
 de la declaración (dado por Aaron) para que el alumno lo descargue, firme y
@@ -117,12 +110,6 @@ cambiar el texto: editar el Doc directamente (no hace falta tocar código).
 Para cambiar a qué documento apunta: actualizar el link en `Index.html`.
 Compartido como "Cualquier persona de ucc.edu.ar con el enlace" (Lector) —
 no tiene datos personales, a diferencia de la constancia generada.
-
-La carpeta de salida tiene que estar compartida como **Editor** con la cuenta
-que ejecuta: la app crea archivos ahí. Sin eso, todo lo demás anda y falla
-recién al generar. Ver "`Access denied: DriveApp` no significa lo que parece".
-Con qué rol entra hoy la cuenta que ejecuta a `SALIDAS`: **sin verificar**
-(correr `probarAccesos()`).
 
 ### Hoja `Planes`
 
@@ -140,11 +127,9 @@ planilla, no acá.
 
 ### Hoja `Calendario`
 
-Columnas: `anio, fin_clases, inicio_clases_siguiente`. Una fila por año.
-Cargado: `2026, 13/11/2026, 09/03/2027`.
-
-Cuando llegue 2027 hay que agregar la fila. Si falta el año en curso, el
-código no explota: deja las fechas vacías y emite un aviso.
+Columnas: `anio, fin_clases, inicio_clases_siguiente`. Una fila por año. Si
+falta el año en curso, el código no explota: deja las fechas vacías y emite un
+aviso.
 
 ### Cómo se protege la planilla
 
@@ -243,27 +228,19 @@ repo. Si difieren, gana Apps Script: se trae al repo y se commitea. **Nunca
 suele ser v2 y falla con `Unknown command`.
 
 ```bash
-clasp push -f              # sube el estado local (pisa lo remoto). El -f evita
-                           # el prompt: sin él, si cambió appsscript.json, no sube
-clasp status               # qué archivos van a subir. Correr si hay dudas
-clasp open-script          # abre el editor web (era "clasp open" en v2)
-clasp open-web-app         # abre la web app deployada
-clasp deployments          # lista deployments con sus IDs
+clasp push -f              # sube el estado local (pisa lo remoto)
 clasp deploy -i ID         # actualiza ESE deployment, conservando su URL
+clasp deployments          # lista deployments, IDs y versión actual
+clasp open-script          # abre el editor web (era "clasp open" en v2)
 clasp show-authorized-user # con qué cuenta está logueado clasp
-clasp logout / clasp login # cambiar de cuenta
 ```
 
-**Usá siempre `clasp deploy -i ID`.** A secas crea un deployment nuevo con
-otra URL, y la repartida queda sirviendo la versión vieja para siempre.
-
-**Sin `-f`, si cambió `appsscript.json`, `clasp push` no sube nada**: en una
-terminal no interactiva dice `Skipping push` y sale con código 0. Verificá que
-diga `Pushed N files`.
-
-**`clasp push` NO actualiza la URL pública**; eso lo hace `clasp deploy`.
-Después de cualquier cambio que deba verse en la URL: los dos, y decirle a
-Agus qué se subió.
+- **`clasp push` NO actualiza la URL pública**; eso lo hace `clasp deploy`.
+  Después de cualquier cambio: los dos, y decirle a Agus qué se subió.
+- **Siempre `clasp deploy -i ID`.** A secas crea un deployment nuevo con otra
+  URL, y la repartida queda sirviendo la versión vieja para siempre.
+- **Siempre `push -f`.** Sin `-f`, si cambió `appsscript.json`, dice `Skipping
+  push` y sale con código 0. Verificá que diga `Pushed N files`.
 
 ### Configuración de la web app en `appsscript.json`
 
@@ -291,11 +268,8 @@ Lo que vale es lo que dice la UI.
 si se deployó con clasp, o la logueada en el editor si se deployó desde ahí.
 Los errores de permisos se chequean contra esa cuenta.
 
-Deployment en uso: `AKfycbyynGlujVlmAfv6WFTl51fhCK7huZEuxcq3jNwC486hc7LrGMzpfiDbTu2zoJTNsXgJhg`
-(versión 16 al 2026-09-22, incluye `blindarPlanilla()`, el consentimiento
-firmado, el split de `Codigo.js` en archivos por capa, el link de
-descarga del consentimiento y el spinner de progreso). El `@HEAD`
-(`AKfycbxVT3Rq…`) no se toca.
+Deployment en uso: `AKfycbyynGlujVlmAfv6WFTl51fhCK7huZEuxcq3jNwC486hc7LrGMzpfiDbTu2zoJTNsXgJhg`.
+El `@HEAD` (`AKfycbxVT3Rq…`) no se toca.
 
 ### `oauthScopes`: no están, y es a propósito
 
