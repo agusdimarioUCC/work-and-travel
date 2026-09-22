@@ -108,6 +108,16 @@ de `Config.js`:
 El proyecto de Apps Script también es de `grado.fi@ucc.edu.ar` (cuenta de área
 de la Secretaría).
 
+**Modelo del consentimiento:** `Index.html` linkea un Google Doc con el texto
+de la declaración (dado por Aaron) para que el alumno lo descargue, firme y
+vuelva a subir. Es un link hardcodeado en `Index.html`
+(`https://docs.google.com/document/d/1LSyMCu3m.../view`), **no vive en
+`CONFIG`**: el código nunca lee ni escribe ese archivo, solo lo enlaza. Para
+cambiar el texto: editar el Doc directamente (no hace falta tocar código).
+Para cambiar a qué documento apunta: actualizar el link en `Index.html`.
+Compartido como "Cualquier persona de ucc.edu.ar con el enlace" (Lector) —
+no tiene datos personales, a diferencia de la constancia generada.
+
 La carpeta de salida tiene que estar compartida como **Editor** con la cuenta
 que ejecuta: la app crea archivos ahí. Sin eso, todo lo demás anda y falla
 recién al generar. Ver "`Access denied: DriveApp` no significa lo que parece".

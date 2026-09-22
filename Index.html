@@ -33,6 +33,8 @@
   }
   h1 { font-size: 20px; margin: 0 0 4px; color: var(--azul); }
   .bajada { color: var(--gris); font-size: 14px; margin: 0 0 24px; }
+  .ayuda { color: var(--gris); font-size: 13px; margin: 0; }
+  .ayuda a { color: var(--azul); font-weight: 500; }
 
   .zona {
     border: 2px dashed var(--borde);
@@ -118,7 +120,11 @@
 
   <div class="elegido" id="elegidoFicha"></div>
 
-  <div class="zona" id="zonaConsentimiento" style="margin-top:16px">
+  <p class="ayuda" style="margin-top:16px">
+    ¿No tenés el consentimiento? <a href="https://docs.google.com/document/d/1LSyMCu3m_F8I83-V5bzTs7vtyRpKheTCwkh8lMEOltQ/view" target="_blank" rel="noopener">Descargalo acá</a>, firmalo (digital o a mano) y subí el archivo abajo.
+  </p>
+
+  <div class="zona" id="zonaConsentimiento">
     <strong>Subí tu consentimiento firmado</strong>
     <small>Firmado digitalmente o escaneado/fotografiado &middot; PDF, JPG o PNG</small>
     <input type="file" id="archivoConsentimiento" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png">
