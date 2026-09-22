@@ -176,7 +176,7 @@
     const elegido = document.getElementById(idElegido);
 
     const tomar = f => {
-      if (!f) return;
+      if (!f || temporizador) return;   // mientras genera, no se cambian archivos
       const ext = f.name.split('.').pop().toLowerCase();
       if (!extensionesValidas.includes(ext)) {
         mostrarError(mensajeError);
