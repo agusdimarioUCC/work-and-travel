@@ -76,6 +76,13 @@
   button:disabled { background: #a8b2bf; cursor: default; }
 
   .estado { display: none; margin-top: 20px; font-size: 14px; color: var(--gris); text-align: center; }
+  .spinner {
+    display: inline-block; width: 16px; height: 16px; margin-right: 8px;
+    border: 2px solid var(--borde); border-top-color: var(--azul);
+    border-radius: 50%; vertical-align: middle;
+    animation: girar .8s linear infinite;
+  }
+  @keyframes girar { to { transform: rotate(360deg); } }
 
   .resultado, .error { display: none; margin-top: 24px; }
   .resultado { padding: 20px; background: #f2f8f4; border: 1px solid #cfe3d7; border-radius: 8px; }
@@ -134,7 +141,7 @@
 
   <button id="generar" disabled>Generar constancia</button>
 
-  <div class="estado" id="estado">Procesando&hellip; puede tardar unos segundos.</div>
+  <div class="estado" id="estado"><span class="spinner"></span><span id="estadoTexto">Procesando&hellip;</span></div>
 
   <div class="resultado" id="resultado">
     <h2>Constancia generada</h2>
@@ -205,11 +212,37 @@
     });
   }
 
+  const estadoTexto = document.getElementById('estadoTexto');
+  const PASOS = [
+    'Procesando…',
+    'Leyendo la ficha…',
+    'Cruzando datos con la planilla…',
+    'Generando el PDF…',
+    'Ya casi…'
+  ];
+  let temporizador = null;
+
+  function arrancarEstado() {
+    let seg = 0;
+    estadoTexto.textContent = PASOS[0];
+    temporizador = setInterval(() => {
+      seg++;
+      const paso = PASOS[Math.min(Math.floor(seg / 4), PASOS.length - 1)];
+      estadoTexto.textContent = paso + ' (' + seg + 's)';
+    }, 1000);
+  }
+
+  function pararEstado() {
+    clearInterval(temporizador);
+    temporizador = null;
+  }
+
   boton.addEventListener('click', async () => {
     if (!archivos.ficha || !archivos.consentimiento) return;
     ocultar();
     boton.disabled = true;
     estado.style.display = 'block';
+    arrancarEstado();
 
     try {
       const [base64Ficha, base64Consentimiento] = await Promise.all(
@@ -225,6 +258,7 @@
   });
 
   function responder(r) {
+    pararEstado();
     estado.style.display = 'none';
     boton.disabled = false;
 
@@ -256,6 +290,7 @@
   }
 
   function mostrarError(msg) {
+    pararEstado();
     estado.style.display = 'none';
     resultado.style.display = 'none';
     boton.disabled = !(archivos.ficha && archivos.consentimiento);
