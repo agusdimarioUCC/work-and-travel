@@ -475,7 +475,6 @@ function blindarPlanilla() {
     : 'Planilla blindada. Todo lo cargado cumple la validación.');
 }
 
-
 // ============================================================
 // PRUEBAS
 // ============================================================

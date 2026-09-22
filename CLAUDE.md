@@ -361,16 +361,12 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 ## Pendientes
 
 - **`blindarPlanilla()` ya corrió contra la planilla real y quedó blindada**
-  (encabezados protegidos, validación por columna). Las fórmulas de
-  validación usan `;` como separador de argumentos, no `,`: la planilla está
-  en locale `es_ES`, donde `,` es el separador decimal y Sheets rechaza la
-  regla entera (hasta `=AND(TRUE,TRUE)` fallaba con `,`). No vuelvas a poner
-  `,` en una `requireFormulaSatisfied()` de este archivo.
-  Falta: `blindarPlanilla()` encontró 2 celdas ya cargadas que no cumplen la
-  validación de fecha — `Calendario`, fila 2, `fin_clases` e
-  `inicio_clases_siguiente` están como texto, no como fecha. Hay que
-  reescribirlas a mano en la hoja y volver a correr `blindarPlanilla()` para
-  confirmar que el log queda limpio. Recién ahí deployar
+  (encabezados protegidos, validación por columna, log limpio: "Todo lo
+  cargado cumple la validación"). Las fórmulas de validación usan `;` como
+  separador de argumentos, no `,`: la planilla está en locale `es_ES`, donde
+  `,` es el separador decimal y Sheets rechaza la regla entera (hasta
+  `=AND(TRUE,TRUE)` fallaba con `,`). No vuelvas a poner `,` en una
+  `requireFormulaSatisfied()` de este archivo. Falta deployar
   (`clasp deploy -i AKfycbyynGlu...`).
 - Sin verificar con qué cuenta corre la web app ("Ejecutar como" en
   *Administrar implementaciones*). No es urgente.
