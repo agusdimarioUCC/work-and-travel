@@ -115,7 +115,8 @@ no tiene datos personales, a diferencia de la constancia generada.
 
 Una fila por carrera. La clave de búsqueda es `clave` = `cod_carrera-plan`
 (ej: `17-2023`), que se arma con dos datos que salen de la misma línea
-`CARRERA:` de la ficha.
+`CARRERA:` de la ficha. Todos los códigos de carrera tienen dos dígitos: no
+hace falta normalizar ceros a la izquierda.
 
 Columnas: `clave, cod_carrera, plan, carrera, duracion_anios,
 cantidad_materias, acred_ingles, acred_rsu, items_plan, inicio_actividad`.
@@ -370,6 +371,8 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
   Si ese mail viene vacío, **tira error antes de crear ningún archivo**. No
   hay fallback a compartir por link: antes había `DOMAIN_WITH_LINK`, y dejaba
   la constancia con DNI visible para todo el dominio. No lo vuelvas a poner.
+- No se valida que el mail de la sesión corresponda al alumno de la ficha, y
+  es a propósito: no es un riesgo real en este contexto. No lo propongas.
 
 ---
 
