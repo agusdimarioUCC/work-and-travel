@@ -1,8 +1,8 @@
 /**
  * NOTA INSTITUCIONAL - Interfaz web
  *
- * Archivo aparte de Codigo. Solo expone la web app y el endpoint de subida;
- * toda la lógica vive en Codigo.
+ * Solo expone la web app y el endpoint de subida; los casos de uso viven en
+ * Orquestacion.js.
  */
 
 function doGet() {
