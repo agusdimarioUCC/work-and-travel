@@ -16,7 +16,7 @@ Escribir código y comentarios en español, con nombres `camelCase` y punto y co
 
 ## Privacidad y configuración
 
-No registrar ni incorporar datos personales reales en código, fixtures o pruebas. Mantener vacía `ID_FICHA_PRUEBA` en el repositorio. La ficha subida se elimina al procesarse; el consentimiento firmado se conserva como evidencia. Los PDF generados se comparten únicamente con el alumno. No habilitar acceso público ni cambiar los permisos del deployment: debe ser solo para el dominio (`DOMAIN`). No agregar `oauthScopes` manuales; Apps Script los infiere.
+No registrar ni incorporar datos personales reales en código, fixtures o pruebas. Mantener vacía `ID_FICHA_PRUEBA` en el repositorio. La ficha subida se elimina al procesarse; el consentimiento firmado se conserva como evidencia y cada envío se anota en la planilla `SALIDAS/Registro de consentimientos` (nombre, legajo, carrera y mail; nunca DNI ni domicilio). Los PDF generados se comparten únicamente con el alumno. No habilitar acceso público ni cambiar los permisos del deployment: debe ser solo para el dominio (`DOMAIN`). No agregar `oauthScopes` manuales; Apps Script los infiere.
 
 ## Commits y pull requests
 
