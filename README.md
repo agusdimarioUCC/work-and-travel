@@ -26,7 +26,7 @@ Datos.js          Lectura de las hojas Planes y Calendario (Sheets).
 PdfATexto.js      Conversión del PDF de la ficha a texto (Drive).
 Generacion.js     Genera el PDF de la nota a partir de la plantilla (Docs).
 Orquestacion.js   Casos de uso: procesarFicha, aprobarYGenerar, fichaANota.
-Mantenimiento.js  blindarPlanilla() y prepararConsentimiento(), a mano desde el editor.
+Mantenimiento.js  blindarPlanilla(), se corre a mano desde el editor.
 Pruebas.js        Funciones probar* y datos de prueba.
 WebApp.js         doGet() + el endpoint subirYGenerar() + registro de envíos.
 Index.html        Pantalla de subida.

@@ -56,7 +56,7 @@ solo de organización, no de aislamiento):
 | `PdfATexto.js` | Conversión del PDF de la ficha a texto (Drive) |
 | `Generacion.js` | Copia la plantilla y genera el PDF de la nota (Docs) |
 | `Orquestacion.js` | Casos de uso: `procesarFicha`, `aprobarYGenerar`, `fichaANota` |
-| `Mantenimiento.js` | `blindarPlanilla()` y `prepararConsentimiento()`, se corren a mano desde el editor |
+| `Mantenimiento.js` | `blindarPlanilla()`, se corre a mano desde el editor |
 | `Pruebas.js` | Todas las funciones `probar*` y los datos de prueba |
 | `WebApp.js` | Borde HTTP: `doGet` y `subirYGenerar`, más el guardado del consentimiento y el registro de envíos |
 | `Index.html` | Pantalla de subida |
@@ -106,7 +106,7 @@ de `Config.js`:
 | `ID_PLANILLA` | Google Sheets "Base de Datos", con las hojas `Planes` y `Calendario` | Lector |
 | `ID_PLANTILLA` | Google Doc "Plantilla Constancia", con el texto y los placeholders | Lector |
 | `ID_CARPETA_SALIDA` | Carpeta `SALIDAS`, donde se dejan los PDF generados | **Editor** |
-| `ID_CONSENTIMIENTO` | Google Doc con el texto del consentimiento que descarga el alumno | Ninguno en la web app; Editor para correr `prepararConsentimiento()` |
+| `ID_CONSENTIMIENTO` | Google Doc con el texto del consentimiento que descarga el alumno | Ninguno: lo descarga el navegador del alumno |
 
 Los cuatro, y el proyecto de Apps Script, son de `grado.fi@ucc.edu.ar` (cuenta
 de área de la Secretaría).
@@ -120,18 +120,18 @@ firma (insertando la firma en el PDF o imprimiéndolo) y vuelve a subir.
   el consentimiento no tiene que parecer modificable). `doGet()` arma el link
   de exportación `…/export?format=pdf` y se lo pasa a `Index.html`, que es una
   plantilla de HtmlService (`<?= urlConsentimiento ?>`).
-- Tiene que estar compartido como "Cualquier persona de ucc.edu.ar con el
-  enlace" (Lector): el que descarga es el navegador del alumno, no la cuenta
-  que ejecuta. Al 2026-09-25 la API mostraba el permiso de dominio a nombre de
-  `bdmg.com.ar` y no de `ucc.edu.ar` (ver Pendientes). Además
+- Compartido como "Cualquier persona de la UCC con el enlace" (Lector): el
+  que descarga es el navegador del alumno, no la cuenta que ejecuta. En la API
+  ese permiso figura con dominio `bdmg.com.ar`, y está bien: en *Compartir*
+  dice UCC (verificado por Agus, 2026-09-25). No lo "corrijas". Además
   **los lectores tienen que poder descargar**: si en el Doc se destilda
   "Los lectores pueden descargar, imprimir y copiar", el link de exportación
   deja de andar. No tiene datos personales, a diferencia de la constancia.
 - Para cambiar el texto: editar el Doc directamente (no hace falta tocar
   código). Para cambiar a qué documento apunta: `ID_CONSENTIMIENTO` en `CONFIG`.
-- El título y el bloque de firma los agrega `prepararConsentimiento()`
-  (`Mantenimiento.js`), a correr una sola vez desde el editor con la cuenta
-  dueña del Doc. Si ya encuentra el título, no hace nada.
+- El título y el bloque de firma se agregaron una vez con una función de
+  mantenimiento (2026-09-25) que ya se borró. Ahora son texto del Doc: se
+  cambian editándolo.
 
 ### Hoja `Planes`
 
@@ -409,12 +409,6 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 
 ## Pendientes
 
-- Confirmar que el Doc del consentimiento lo puede abrir cualquier alumno de
-  `ucc.edu.ar`. La API muestra el permiso de dominio para `bdmg.com.ar`; si en
-  *Compartir → Acceso general* no dice UCC / `ucc.edu.ar`, cambiarlo, o el link
-  de descarga les da "Necesitás acceso".
 - `Session.getActiveUser().getEmail()` ya se usa para compartir el PDF. Se
   podría usar también para sacar pasos manuales del formulario.
 - Fila del calendario 2027 cuando se defina.
-- Correr `prepararConsentimiento()` una vez (cuenta `grado.fi`), revisar cómo
-  quedó el Doc y borrar la función de `Mantenimiento.js`.
