@@ -120,8 +120,10 @@ firma (insertando la firma en el PDF o imprimiéndolo) y vuelve a subir.
   el consentimiento no tiene que parecer modificable). `doGet()` arma el link
   de exportación `…/export?format=pdf` y se lo pasa a `Index.html`, que es una
   plantilla de HtmlService (`<?= urlConsentimiento ?>`).
-- Compartido como "Cualquier persona de ucc.edu.ar con el enlace" (Lector):
-  el que descarga es el navegador del alumno, no la cuenta que ejecuta. Además
+- Tiene que estar compartido como "Cualquier persona de ucc.edu.ar con el
+  enlace" (Lector): el que descarga es el navegador del alumno, no la cuenta
+  que ejecuta. Al 2026-09-25 la API mostraba el permiso de dominio a nombre de
+  `bdmg.com.ar` y no de `ucc.edu.ar` (ver Pendientes). Además
   **los lectores tienen que poder descargar**: si en el Doc se destilda
   "Los lectores pueden descargar, imprimir y copiar", el link de exportación
   deja de andar. No tiene datos personales, a diferencia de la constancia.
@@ -289,6 +291,10 @@ Lo que vale es lo que dice la UI.
 si se deployó con clasp, o la logueada en el editor si se deployó desde ahí.
 Los errores de permisos se chequean contra esa cuenta.
 
+Verificado el 2026-09-25: la web app corre como `2400520@ucc.edu.ar` (Agus,
+que deploya con clasp). Los PDF, consentimientos y el registro que crea quedan
+a su nombre, y después Agus le pasa la propiedad a `grado.fi`.
+
 Deployment en uso: `AKfycbyynGlujVlmAfv6WFTl51fhCK7huZEuxcq3jNwC486hc7LrGMzpfiDbTu2zoJTNsXgJhg`.
 El `@HEAD` (`AKfycbxVT3Rq…`) no se toca.
 
@@ -403,8 +409,10 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 
 ## Pendientes
 
-- Sin verificar con qué cuenta corre la web app ("Ejecutar como" en
-  *Administrar implementaciones*). No es urgente.
+- Confirmar que el Doc del consentimiento lo puede abrir cualquier alumno de
+  `ucc.edu.ar`. La API muestra el permiso de dominio para `bdmg.com.ar`; si en
+  *Compartir → Acceso general* no dice UCC / `ucc.edu.ar`, cambiarlo, o el link
+  de descarga les da "Necesitás acceso".
 - `Session.getActiveUser().getEmail()` ya se usa para compartir el PDF. Se
   podría usar también para sacar pasos manuales del formulario.
 - Fila del calendario 2027 cuando se defina.
