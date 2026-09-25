@@ -17,6 +17,7 @@ const CONFIG = {
   ID_PLANILLA: '1U0IEygsMU0hsesUHbmhNiMD6fSwaPE4fS7lqmaBPJ04',   // hojas "Planes" y "Calendario" (Google Sheets nativo)
   ID_PLANTILLA: '1jhI-qM0_Yd1HdbCA9W0QlbYjbX4Llap8-Q-SA3hgbb0',   // plantilla de la nota (Google Docs nativo)
   ID_CARPETA_SALIDA: '1xYDMz4UdAeQWr8X7Opaqg8Ey3Skf3mI5',
+  ID_CONSENTIMIENTO: '1LSyMCu3m_F8I83-V5bzTs7vtyRpKheTCwkh8lMEOltQ', // texto del consentimiento que baja el alumno (Google Docs nativo)
   INSTITUCION: 'Universidad Católica de Córdoba - Facultad de Ingeniería',
   MODALIDAD: 'Presencial',
   ZONA_HORARIA: 'America/Argentina/Cordoba'

@@ -113,3 +113,48 @@ function blindarPlanilla() {
     ? 'Planilla blindada, pero hay celdas ya cargadas que corregir:\n- ' + problemas.join('\n- ')
     : 'Planilla blindada. Todo lo cargado cumple la validación.');
 }
+
+/**
+ * Le agrega al Doc del consentimiento (CONFIG.ID_CONSENTIMIENTO) un título
+ * arriba y, al final, el lugar para que el alumno complete lugar, fecha, hora
+ * y firma. Pedido por Aaron (2026-09-25).
+ *
+ * Se corre UNA vez a mano desde el editor, con la cuenta dueña del Doc
+ * (grado.fi): con permiso de Lector tira "Access denied". Si el Doc ya tiene el
+ * título, no hace nada. Después de correrla, mirar cómo quedó el Doc y borrar
+ * esta función: más adelante el texto se cambia editando el Doc directo.
+ */
+function prepararConsentimiento() {
+  const TITULO = 'CONSENTIMIENTO DEL ALUMNO – PROGRAMA WORK AND TRAVEL';
+  const doc = DocumentApp.openById(CONFIG.ID_CONSENTIMIENTO);
+  const cuerpo = doc.getBody();
+
+  if (cuerpo.getText().indexOf(TITULO) !== -1) {
+    Logger.log('El consentimiento ya tiene el título. No se tocó nada.');
+    return;
+  }
+
+  // Los párrafos nuevos heredan el formato del vecino (puede venir centrado o
+  // en negrita), así que se fija todo a mano.
+  const formatear = (parrafo, alineacion, negrita) => {
+    parrafo.setHeading(DocumentApp.ParagraphHeading.NORMAL).setAlignment(alineacion);
+    parrafo.editAsText().setBold(negrita);
+    return parrafo;
+  };
+
+  formatear(cuerpo.insertParagraph(0, TITULO), DocumentApp.HorizontalAlignment.CENTER, true)
+    .setSpacingAfter(18)
+    .editAsText().setFontSize(14);
+
+  formatear(cuerpo.appendParagraph('Córdoba, ____ / ____ / ________, a las ____ : ____ hs.'),
+    DocumentApp.HorizontalAlignment.LEFT, false)
+    .setSpacingBefore(36);
+  // Espacio de sobra arriba de la línea para que entre la firma.
+  formatear(cuerpo.appendParagraph('Firma: ________________________________'),
+    DocumentApp.HorizontalAlignment.LEFT, false)
+    .setSpacingBefore(48);
+
+  doc.saveAndClose();
+  Logger.log('Listo: se agregó el título y el bloque de lugar, fecha, hora y firma. ' +
+    'Revisá el Doc y borrá prepararConsentimiento() de Mantenimiento.js.');
+}

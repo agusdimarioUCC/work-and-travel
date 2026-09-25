@@ -207,6 +207,10 @@ function probarPuntaAPunta() {
     Logger.log(consentimientos.hasNext()
       ? 'OK -> se guardó el consentimiento en SALIDAS/Consentimientos'
       : 'FALLA -> no se creó la subcarpeta Consentimientos');
+    const registro = DriveApp.getFolderById(carpeta.getId()).getFilesByName(NOMBRE_REGISTRO);
+    Logger.log(registro.hasNext() && SpreadsheetApp.open(registro.next()).getSheets()[0].getLastRow() === 2
+      ? 'OK -> se anotó el envío en "' + NOMBRE_REGISTRO + '"'
+      : 'FALLA -> no se anotó el envío en "' + NOMBRE_REGISTRO + '"');
     Logger.log('OK punta a punta -> se generó "%s"', r.nombre);
 
   } finally {

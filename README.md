@@ -3,9 +3,11 @@
 Google Apps Script de la Facultad de Ingeniería (UCC). Genera la constancia de
 alumno regular que piden los alumnos para trámites de Work and Travel.
 
-**Flujo:** el alumno sube el PDF de su Ficha del Alumno en una web app → se
-extraen sus datos → se cruzan contra dos hojas de referencia (`Planes` y
-`Calendario`) → sale la constancia en PDF, lista para firmar.
+**Flujo:** el alumno descarga el consentimiento en PDF, lo firma y lo sube
+junto con el PDF de su Ficha del Alumno en una web app → se extraen sus datos
+→ se cruzan contra dos hojas de referencia (`Planes` y `Calendario`) → sale la
+constancia en PDF, lista para firmar, y el envío queda anotado en la planilla
+`SALIDAS/Registro de consentimientos`.
 
 ## Documentación
 
@@ -24,9 +26,9 @@ Datos.js          Lectura de las hojas Planes y Calendario (Sheets).
 PdfATexto.js      Conversión del PDF de la ficha a texto (Drive).
 Generacion.js     Genera el PDF de la nota a partir de la plantilla (Docs).
 Orquestacion.js   Casos de uso: procesarFicha, aprobarYGenerar, fichaANota.
-Mantenimiento.js  blindarPlanilla(), se corre a mano desde el editor.
+Mantenimiento.js  blindarPlanilla() y prepararConsentimiento(), a mano desde el editor.
 Pruebas.js        Funciones probar* y datos de prueba.
-WebApp.js         doGet() + el endpoint subirYGenerar(). Solo el borde HTTP/UI.
+WebApp.js         doGet() + el endpoint subirYGenerar() + registro de envíos.
 Index.html        Pantalla de subida.
 appsscript.json   Manifest de Apps Script.
 .clasp.json       scriptId y configuración de clasp.

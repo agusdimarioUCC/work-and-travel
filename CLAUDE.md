@@ -56,9 +56,9 @@ solo de organización, no de aislamiento):
 | `PdfATexto.js` | Conversión del PDF de la ficha a texto (Drive) |
 | `Generacion.js` | Copia la plantilla y genera el PDF de la nota (Docs) |
 | `Orquestacion.js` | Casos de uso: `procesarFicha`, `aprobarYGenerar`, `fichaANota` |
-| `Mantenimiento.js` | `blindarPlanilla()`, se corre a mano desde el editor |
+| `Mantenimiento.js` | `blindarPlanilla()` y `prepararConsentimiento()`, se corren a mano desde el editor |
 | `Pruebas.js` | Todas las funciones `probar*` y los datos de prueba |
-| `WebApp.js` | Borde HTTP: `doGet` y `subirYGenerar` |
+| `WebApp.js` | Borde HTTP: `doGet` y `subirYGenerar`, más el guardado del consentimiento y el registro de envíos |
 | `Index.html` | Pantalla de subida |
 
 **Flujo de llamadas:** `Index.html` → `google.script.run.subirYGenerar()`
@@ -66,7 +66,8 @@ solo de organización, no de aislamiento):
 (`Orquestacion.js`) → `procesarFicha()` (`pdfATexto` → `extraerFicha` →
 `leerPlan` / `leerCalendario` → `armarDatosNota`) → `aprobarYGenerar()` →
 `generarNota()` (`Generacion.js`) → guarda el consentimiento firmado en
-`SALIDAS/Consentimientos` → borra la ficha en el `finally`. `procesarFicha`
+`SALIDAS/Consentimientos` → lo anota en la planilla `SALIDAS/Registro de
+consentimientos` (`registrarEnvio`) → borra la ficha en el `finally`. `procesarFicha`
 y `aprobarYGenerar` están separadas para poder mostrar los datos antes de
 generar, aunque la web app hoy hace todo de una.
 
@@ -74,6 +75,14 @@ generar, aunque la web app hoy hace todo de una.
 se guarda en `SALIDAS/Consentimientos`, que `carpetaConsentimientos()` crea
 sola (no tiene ID en `CONFIG`). Si `fichaANota()` falla, no se guarda. Por qué
 se conserva: ver Privacidad.
+
+**Registro de consentimientos** (pedido por Aaron, 2026-09-25): el panel de la
+Secretaría para ver quién ya subió el consentimiento. Es una planilla en
+`SALIDAS` que `hojaRegistro()` crea sola la primera vez (tampoco tiene ID en
+`CONFIG`; se busca por nombre). `registrarEnvio()` suma una fila por envío
+exitoso: fecha y hora, alumno/a, legajo, carrera, mail de la sesión, link al
+consentimiento y link a la constancia. Si se borra la planilla, la próxima
+subida crea una nueva vacía.
 
 `pdfATexto()` usa el **servicio avanzado de Drive** (`Drive.Files.create`),
 habilitado en `appsscript.json` (`enabledAdvancedServices`, v3). No es lo mismo
@@ -97,19 +106,30 @@ de `Config.js`:
 | `ID_PLANILLA` | Google Sheets "Base de Datos", con las hojas `Planes` y `Calendario` | Lector |
 | `ID_PLANTILLA` | Google Doc "Plantilla Constancia", con el texto y los placeholders | Lector |
 | `ID_CARPETA_SALIDA` | Carpeta `SALIDAS`, donde se dejan los PDF generados | **Editor** |
+| `ID_CONSENTIMIENTO` | Google Doc con el texto del consentimiento que descarga el alumno | Ninguno en la web app; Editor para correr `prepararConsentimiento()` |
 
-Los tres, y el proyecto de Apps Script, son de `grado.fi@ucc.edu.ar` (cuenta
+Los cuatro, y el proyecto de Apps Script, son de `grado.fi@ucc.edu.ar` (cuenta
 de área de la Secretaría).
 
-**Modelo del consentimiento:** `Index.html` linkea un Google Doc con el texto
-de la declaración (dado por Aaron) para que el alumno lo descargue, firme y
-vuelva a subir. Es un link hardcodeado en `Index.html`
-(`https://docs.google.com/document/d/1LSyMCu3m.../view`), **no vive en
-`CONFIG`**: el código nunca lee ni escribe ese archivo, solo lo enlaza. Para
-cambiar el texto: editar el Doc directamente (no hace falta tocar código).
-Para cambiar a qué documento apunta: actualizar el link en `Index.html`.
-Compartido como "Cualquier persona de ucc.edu.ar con el enlace" (Lector) —
-no tiene datos personales, a diferencia de la constancia generada.
+**Modelo del consentimiento:** `ID_CONSENTIMIENTO` es un Google Doc con el
+texto de la declaración (dado por Aaron), con título arriba y al final un
+bloque para completar lugar, fecha, hora y firma. El alumno lo descarga,
+firma (insertando la firma en el PDF o imprimiéndolo) y vuelve a subir.
+
+- **Se descarga como PDF, no se abre el Doc** (pedido por Aaron, 2026-09-25:
+  el consentimiento no tiene que parecer modificable). `doGet()` arma el link
+  de exportación `…/export?format=pdf` y se lo pasa a `Index.html`, que es una
+  plantilla de HtmlService (`<?= urlConsentimiento ?>`).
+- Compartido como "Cualquier persona de ucc.edu.ar con el enlace" (Lector):
+  el que descarga es el navegador del alumno, no la cuenta que ejecuta. Además
+  **los lectores tienen que poder descargar**: si en el Doc se destilda
+  "Los lectores pueden descargar, imprimir y copiar", el link de exportación
+  deja de andar. No tiene datos personales, a diferencia de la constancia.
+- Para cambiar el texto: editar el Doc directamente (no hace falta tocar
+  código). Para cambiar a qué documento apunta: `ID_CONSENTIMIENTO` en `CONFIG`.
+- El título y el bloque de firma los agrega `prepararConsentimiento()`
+  (`Mantenimiento.js`), a correr una sola vez desde el editor con la cuenta
+  dueña del Doc. Si ya encuentra el título, no hace nada.
 
 ### Hoja `Planes`
 
@@ -320,7 +340,8 @@ mano desde el editor (`clasp open-script` → elegir función → Run):
 - `probarPuntaAPunta()` — **la más útil.** Llama a `subirYGenerar()` (la
   función real de la web app) con una ficha fabricada a partir de
   `FICHA_SINTETICA` y un consentimiento sintético, en una carpeta temporal
-  que borra al terminar.
+  que borra al terminar. Chequea también que se haya creado la subcarpeta
+  `Consentimientos` y que el envío quede anotado en el registro.
 - `probarExtraccion()` / `probarCompleto()` — sobre una ficha real. Necesitan
   `ID_FICHA_PRUEBA`, que **va vacío en el repo a propósito** (DNI y
   domicilio): pegar el ID, correr y volver a vaciarlo.
@@ -358,6 +379,10 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
   `SALIDAS/Consentimientos` en vez de borrarse, porque es la prueba de que el
   alumno aceptó. No lo borres para "igualar" el tratamiento de la ficha.
 - No agregues logging que persista DNI, nombres completos o domicilios.
+- La planilla **Registro de consentimientos** es la excepción pedida por
+  Aaron: guarda nombre, legajo, carrera y mail de cada envío, porque sin eso
+  no sirve como panel. **No guarda DNI ni domicilio**: no los sumes. Vive en
+  `SALIDAS` y hereda sus permisos (los alumnos no la ven).
 - **No dejes datos de nadie hardcodeados**, ni siquiera para pruebas.
   `probarLogica()` usa un alumno inventado y `ID_FICHA_PRUEBA` va vacío.
 - Para probar con una ficha real, usar una de alguien que haya dado el ok, y
@@ -383,3 +408,5 @@ Las fichas tienen DNI, domicilio y el historial académico completo del alumno.
 - `Session.getActiveUser().getEmail()` ya se usa para compartir el PDF. Se
   podría usar también para sacar pasos manuales del formulario.
 - Fila del calendario 2027 cuando se defina.
+- Correr `prepararConsentimiento()` una vez (cuenta `grado.fi`), revisar cómo
+  quedó el Doc y borrar la función de `Mantenimiento.js`.
